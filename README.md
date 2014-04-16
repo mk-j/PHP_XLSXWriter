@@ -10,6 +10,8 @@ It is designed to output an Excel spreadsheet in with (Office 2007+) xlsx format
   * simple $0.00 currency format 
   * simple ``Y-M-D/Y-M-D H:m:s`` format
 
+If you find yourself [running out of memory writing spreadsheets with PHPExcel](http://www.zedwood.com/article/php_xlsxwriter-performance-comparison), give it a try.
+
 Simple example:
 ```php
 $data = array(
