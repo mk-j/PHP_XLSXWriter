@@ -71,11 +71,10 @@ for($i=0; $i<50000; $i++)
 {
    $data[] = array(rand()%10000,rand()%10000,rand()%10000,rand()%10000);
 }
-
-file_put_contents("php://stderr", '#'.floor((memory_get_peak_usage())/1024/1024)."MB"."\n");
+echo '#'.floor((memory_get_peak_usage())/1024/1024)."MB"."\n";
 
 $writer = new XLSXWriter();
 $writer->writeSheet($data);
 $writer->writeToFile('output.xlsx');
-file_put_contents("php://stderr", '#'.floor((memory_get_peak_usage())/1024/1024)."MB"."\n");
+echo '#'.floor((memory_get_peak_usage())/1024/1024)."MB"."\n";
 ```
