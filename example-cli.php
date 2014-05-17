@@ -1,13 +1,6 @@
 <?php
 include_once("xlsxwriter.class.php");
 
-$filename = "example.xlsx";
-header('Content-disposition: attachment; filename="'.XLSXWriter::sanitize_filename($filename).'"');
-header("Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
-header('Content-Transfer-Encoding: binary');
-header('Cache-Control: must-revalidate');
-header('Pragma: public');
-
 $header = array(
     'year'=>'string',
     'month'=>'string',
@@ -27,8 +20,8 @@ $writer = new XLSXWriter();
 $writer->setAuthor('Some Author');
 $writer->writeSheet($data1,'Sheet1',$header);
 $writer->writeSheet($data2,'Sheet2');
-//$writer->writeToFile('example.xlsx');
-$writer->writeToStdOut();
+$writer->writeToFile('example.xlsx');
+//$writer->writeToStdOut();
 //echo $writer->writeToString();
 
 

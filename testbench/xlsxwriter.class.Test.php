@@ -1,11 +1,34 @@
 <?php
+set_include_path(__DIR__.DIRECTORY_SEPARATOR.'..'.PATH_SEPARATOR.get_include_path());
 include_once 'PHPUnit/Framework/TestCase.php'; // located in /usr/share/php
 include_once 'xlsxwriter.class.php';
 
+
+class _XLSXWriter_ extends XLSXWriter
+{
+    public function writeCell() { 
+		return call_user_func_array('parent::writeCell', func_get_args()); 
+	}
+}
 //Just a simple test, by no means comprehensive
 
 class XLSXWriterTest extends PHPUnit_Framework_TestCase
 {
+    /**
+     * @covers XLSXWriter::writeCell
+     */
+	public function testWriteCell()
+	{
+		$filename = tempnam("/tmp", "xlsx_writer");
+        $fd = fopen($filename, "w+");
+        $xlsx_writer = new _XLSXWriter_();
+        $xlsx_writer->writeCell($fd, 0, 0, '0123', 'string');
+        fclose($fd);
+        $cell_xml = file_get_contents($filename);
+        $this->assertNotEquals('<c r="A1" s="0" t="n"><v>123</v></c>', $cell_xml);
+        $this->assertEquals('<c r="A1" s="0" t="s"><v>0</v></c>', $cell_xml);//0123 should be the 0th index of the shared string array
+        @unlink($filename);
+    }
 
     /**
      * @covers XLSXWriter::writeToFile
