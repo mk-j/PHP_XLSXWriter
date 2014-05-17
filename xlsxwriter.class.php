@@ -151,17 +151,19 @@ Class XLSXWriter
 		$cell = self::xlsCell($row_number, $column_number);
 		$s = isset($styles[$cell_format]) ? $styles[$cell_format] : '0';
 		
-		if (is_numeric($value)) {
-			fwrite($fd,'<c r="'.$cell.'" s="'.$s.'" t="n"><v>'.($value*1).'</v></c>');//int,float, etc
-		} else if ($cell_format=='date') {
-			fwrite($fd,'<c r="'.$cell.'" s="'.$s.'" t="n"><v>'.intval(self::convert_date_time($value)).'</v></c>');
-		} else if ($cell_format=='datetime') {
-			fwrite($fd,'<c r="'.$cell.'" s="'.$s.'" t="n"><v>'.self::convert_date_time($value).'</v></c>');
-		} else if ($value==''){
+		if (!is_scalar($value) || $value=='') { //objects, array, empty
 			fwrite($fd,'<c r="'.$cell.'" s="'.$s.'"/>');
-		} else if ($value{0}=='='){
+		} elseif ($cell_format=='date') {
+			fwrite($fd,'<c r="'.$cell.'" s="'.$s.'" t="n"><v>'.intval(self::convert_date_time($value)).'</v></c>');
+		} elseif ($cell_format=='datetime') {
+			fwrite($fd,'<c r="'.$cell.'" s="'.$s.'" t="n"><v>'.self::convert_date_time($value).'</v></c>');
+		} elseif (!is_string($value)) {
+			fwrite($fd,'<c r="'.$cell.'" s="'.$s.'" t="n"><v>'.($value*1).'</v></c>');//int,float, etc
+		} elseif ($value{0}!='0' && is_numeric($value)){ //excel wants to trim leading zeros
+			fwrite($fd,'<c r="'.$cell.'" s="'.$s.'" t="n"><v>'.($value*1).'</v></c>');//int,float, etc
+		} elseif ($value{0}=='='){
 			fwrite($fd,'<c r="'.$cell.'" s="'.$s.'" t="s"><f>'.self::xmlspecialchars($value).'</f></c>');
-		} else if ($value!==''){
+		} elseif ($value!==''){
 			fwrite($fd,'<c r="'.$cell.'" s="'.$s.'" t="s"><v>'.self::xmlspecialchars($this->setSharedString($value)).'</v></c>');
 		}
 	}
@@ -369,6 +371,14 @@ Class XLSXWriter
 	public static function log($string)
 	{
 		file_put_contents("php://stderr", date("Y-m-d H:i:s:").rtrim(is_array($string) ? json_encode($string) : $string)."\n");
+	}
+	//------------------------------------------------------------------
+	public static function sanitize_filename($filename) //http://msdn.microsoft.com/en-us/library/aa365247%28VS.85%29.aspx
+	{
+		$nonprinting = array_map('chr', range(0,31));
+		$invalid_chars = array('<', '>', '?', '"', ':', '|', '\\', '/', '*', '&');
+		$all_invalids = array_merge($nonprinting,$invalid_chars);
+		return str_replace($all_invalids, "", $filename);
 	}
 	//------------------------------------------------------------------
 	public static function xmlspecialchars($val)
