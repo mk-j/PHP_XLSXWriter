@@ -183,8 +183,8 @@ class XLSXWriter
 		$file->write('<numFmts count="4">');
 		$file->write(		'<numFmt formatCode="GENERAL" numFmtId="164"/>');
 		$file->write(		'<numFmt formatCode="[$$-1009]#,##0.00;[RED]\-[$$-1009]#,##0.00" numFmtId="165"/>');
-		$file->write(		'<numFmt formatCode="YYYY/MM/DD\ HH:MM:SS" numFmtId="166"/>');
-		$file->write(		'<numFmt formatCode="YYYY/MM/DD" numFmtId="167"/>');
+		$file->write(		'<numFmt formatCode="YYYY-MM-DD\ HH:MM:SS" numFmtId="166"/>');
+		$file->write(		'<numFmt formatCode="YYYY-MM-DD" numFmtId="167"/>');
 		$file->write('</numFmts>');
 		$file->write('<fonts count="4">');
 		$file->write(		'<font><name val="Arial"/><charset val="1"/><family val="2"/><sz val="10"/></font>');
