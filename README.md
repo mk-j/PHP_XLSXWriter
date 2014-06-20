@@ -5,7 +5,7 @@ This library is designed to be lightweight, and have relatively low memory usage
 
 It is designed to output an Excel spreadsheet in with (Office 2007+) xlsx format, with just basic features supported:
 * supports PHP 5.2+
-* assumes input is valid UTF-8
+* takes UTF-8 encoded input
 * multiple worksheets
 * supports a few simple cell formats:
   * simple $0.00 currency format 
@@ -13,7 +13,7 @@ It is designed to output an Excel spreadsheet in with (Office 2007+) xlsx format
 
 Give this library a try, if you find yourself [running out of memory writing spreadsheets with PHPExcel](http://www.zedwood.com/article/php_xlsxwriter-performance-comparison).
 
-Simple example:
+Simple PHP CLI example:
 ```php
 $data = array(
     array('year','month','amount'),
