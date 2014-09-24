@@ -14,6 +14,11 @@ class XLSXWriter
 	protected $shared_string_count = 0;//count of non-unique references to the unique set
 	protected $temp_files = array();
 
+    protected $file;
+    protected $row_num;
+    protected $header_offset;
+    protected $cell_formats_arr;
+
 	public function __construct()
 	{
 		if(!ini_get('date.timezone'))
@@ -86,69 +91,86 @@ class XLSXWriter
 		$zip->close();
 	}
 
+    public function writeSheet(array $data, $sheet_name='', array $header_types=array() )
+    {
+        $data = empty($data) ? array(array('')) : $data;
+
+        $row_count = count($data);
+        $column_count = count($data[self::array_first_key($data)]);
+
+        $this->writeSheetHead($row_count, $column_count, $sheet_name, $header_types);
+
+        foreach($data as $i=>$row)
+        {
+            $this->writeSheetRow($row);
+        }
+
+        $this->writeSheetFooter();
+    }
 	
-	public function writeSheet(array $data, $sheet_name='', array $header_types=array() )
-	{
-		$data = empty($data) ? array( array('') ) : $data;
-		
-		$sheet_filename = $this->tempFilename();
-		$sheet_default = 'Sheet'.(count($this->sheets_meta)+1);
-		$sheet_name = !empty($sheet_name) ? $sheet_name : $sheet_default;
-		$this->sheets_meta[] = array('filename'=>$sheet_filename, 'sheetname'=>$sheet_name ,'xmlname'=>strtolower($sheet_default).".xml" );
+	public function writeSheetHead($row_count, $column_count, $sheet_name='', array $header_types=array() )
+    {
+        $sheet_filename = $this->tempFilename();
+        $sheet_default = 'Sheet' . (count($this->sheets_meta) + 1);
+        $sheet_name = !empty($sheet_name) ? $sheet_name : $sheet_default;
+        $this->sheets_meta[] = array('filename' => $sheet_filename, 'sheetname' => $sheet_name, 'xmlname' => strtolower($sheet_default) . ".xml");
 
-		$header_offset = empty($header_types) ? 0 : 1;
-		$row_count = count($data) + $header_offset;
-		$column_count = count($data[self::array_first_key($data)]);
-		$max_cell = self::xlsCell( $row_count-1, $column_count-1 );
+        $this->header_offset = empty($header_types) ? 0 : 1;
+        $row_count = $row_count + $this->header_offset;
+        $max_cell = self::xlsCell($row_count - 1, $column_count - 1);
 
-		$tabselected = count($this->sheets_meta)==1 ? 'true' : 'false';//only first sheet is selected
-		$cell_formats_arr = empty($header_types) ? array_fill(0, $column_count, 'string') : array_values($header_types);
-		$header_row = empty($header_types) ? array() : array_keys($header_types);
+        $tabselected = count($this->sheets_meta) == 1 ? 'true' : 'false';//only first sheet is selected
+        $this->cell_formats_arr = empty($header_types) ? array_fill(0, $column_count, 'string') : array_values($header_types);
+        $header_row = empty($header_types) ? array() : array_keys($header_types);
 
-		$file = new XLSXWriter_BuffererWriter($sheet_filename);
-		$file->write('<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'."\n");
-		$file->write('<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">');
-		$file->write(    '<sheetPr filterMode="false">');
-		$file->write(        '<pageSetUpPr fitToPage="false"/>');
-		$file->write(    '</sheetPr>');
-		$file->write(    '<dimension ref="A1:'.$max_cell.'"/>');
-		$file->write(    '<sheetViews>');
-		$file->write(        '<sheetView colorId="64" defaultGridColor="true" rightToLeft="false" showFormulas="false" showGridLines="true" showOutlineSymbols="true" showRowColHeaders="true" showZeros="true" tabSelected="'.$tabselected.'" topLeftCell="A1" view="normal" windowProtection="false" workbookViewId="0" zoomScale="100" zoomScaleNormal="100" zoomScalePageLayoutView="100">');
-		$file->write(            '<selection activeCell="A1" activeCellId="0" pane="topLeft" sqref="A1"/>');
-		$file->write(        '</sheetView>');
-		$file->write(    '</sheetViews>');
-		$file->write(    '<cols>');
-		$file->write(        '<col collapsed="false" hidden="false" max="1025" min="1" style="0" width="11.5"/>');
-		$file->write(    '</cols>');
-		$file->write(    '<sheetData>');
-		if (!empty($header_row))
-		{
-			$file->write('<row collapsed="false" customFormat="false" customHeight="false" hidden="false" ht="12.1" outlineLevel="0" r="'.(1).'">');
-			foreach($header_row as $k=>$v)
-			{
-				$this->writeCell($file, 0, $k, $v, $cell_format='string');
-			}
-			$file->write('</row>');
-		}
-		foreach($data as $i=>$row)
-		{
-			$file->write('<row collapsed="false" customFormat="false" customHeight="false" hidden="false" ht="12.1" outlineLevel="0" r="'.($i+$header_offset+1).'">');
-			foreach($row as $k=>$v)
-			{
-				$this->writeCell($file, $i+$header_offset, $k, $v, $cell_formats_arr[$k]);
-			}
-			$file->write('</row>');
-		}
-		$file->write(    '</sheetData>');
-		$file->write(    '<printOptions headings="false" gridLines="false" gridLinesSet="true" horizontalCentered="false" verticalCentered="false"/>');
-		$file->write(    '<pageMargins left="0.5" right="0.5" top="1.0" bottom="1.0" header="0.5" footer="0.5"/>');
-		$file->write(    '<pageSetup blackAndWhite="false" cellComments="none" copies="1" draft="false" firstPageNumber="1" fitToHeight="1" fitToWidth="1" horizontalDpi="300" orientation="portrait" pageOrder="downThenOver" paperSize="1" scale="100" useFirstPageNumber="true" usePrinterDefaults="false" verticalDpi="300"/>');
-		$file->write(    '<headerFooter differentFirst="false" differentOddEven="false">');
-		$file->write(        '<oddHeader>&amp;C&amp;&quot;Times New Roman,Regular&quot;&amp;12&amp;A</oddHeader>');
-		$file->write(        '<oddFooter>&amp;C&amp;&quot;Times New Roman,Regular&quot;&amp;12Page &amp;P</oddFooter>');
-		$file->write(    '</headerFooter>');
-		$file->write('</worksheet>');
-		$file->close();
+        $this->file = new XLSXWriter_BuffererWriter($sheet_filename);
+        $this->file->write('<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' . "\n");
+        $this->file->write('<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">');
+        $this->file->write('<sheetPr filterMode="false">');
+        $this->file->write('<pageSetUpPr fitToPage="false"/>');
+        $this->file->write('</sheetPr>');
+        $this->file->write('<dimension ref="A1:' . $max_cell . '"/>');
+        $this->file->write('<sheetViews>');
+        $this->file->write('<sheetView colorId="64" defaultGridColor="true" rightToLeft="false" showFormulas="false" showGridLines="true" showOutlineSymbols="true" showRowColHeaders="true" showZeros="true" tabSelected="' . $tabselected . '" topLeftCell="A1" view="normal" windowProtection="false" workbookViewId="0" zoomScale="100" zoomScaleNormal="100" zoomScalePageLayoutView="100">');
+        $this->file->write('<selection activeCell="A1" activeCellId="0" pane="topLeft" sqref="A1"/>');
+        $this->file->write('</sheetView>');
+        $this->file->write('</sheetViews>');
+        $this->file->write('<cols>');
+        $this->file->write('<col collapsed="false" hidden="false" max="1025" min="1" style="0" width="11.5"/>');
+        $this->file->write('</cols>');
+        $this->file->write('<sheetData>');
+        if (!empty($header_row)) {
+            $this->file->write('<row collapsed="false" customFormat="false" customHeight="false" hidden="false" ht="12.1" outlineLevel="0" r="' . (1) . '">');
+            foreach ($header_row as $k => $v) {
+                $this->writeCell($this->file, 0, $k, $v, $cell_format = 'string');
+            }
+            $this->file->write('</row>');
+        }
+        $this->row_num = 0;
+    }
+
+    public function writeSheetRow($row)
+    {
+        $this->file->write('<row collapsed="false" customFormat="false" customHeight="false" hidden="false" ht="12.1" outlineLevel="0" r="' . ($this->row_num + $this->header_offset + 1) . '">');
+        foreach ($row as $k => $v) {
+            $this->writeCell($this->file, $this->row_num + $this->header_offset, $k, $v, $this->cell_formats_arr[$k]);
+        }
+        $this->file->write('</row>');
+        $this->row_num++;
+    }
+
+    public function writeSheetFooter()
+    {
+        $this->file->write(    '</sheetData>');
+        $this->file->write(    '<printOptions headings="false" gridLines="false" gridLinesSet="true" horizontalCentered="false" verticalCentered="false"/>');
+        $this->file->write(    '<pageMargins left="0.5" right="0.5" top="1.0" bottom="1.0" header="0.5" footer="0.5"/>');
+        $this->file->write(    '<pageSetup blackAndWhite="false" cellComments="none" copies="1" draft="false" firstPageNumber="1" fitToHeight="1" fitToWidth="1" horizontalDpi="300" orientation="portrait" pageOrder="downThenOver" paperSize="1" scale="100" useFirstPageNumber="true" usePrinterDefaults="false" verticalDpi="300"/>');
+        $this->file->write(    '<headerFooter differentFirst="false" differentOddEven="false">');
+        $this->file->write(        '<oddHeader>&amp;C&amp;&quot;Times New Roman,Regular&quot;&amp;12&amp;A</oddHeader>');
+        $this->file->write(        '<oddFooter>&amp;C&amp;&quot;Times New Roman,Regular&quot;&amp;12Page &amp;P</oddFooter>');
+        $this->file->write(    '</headerFooter>');
+        $this->file->write('</worksheet>');
+        $this->file->close();
 	}
 
 	protected function writeCell(XLSXWriter_BuffererWriter &$file, $row_number, $column_number, $value, $cell_format)
