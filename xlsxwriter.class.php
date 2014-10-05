@@ -224,7 +224,7 @@ class XLSXWriter
 	public function writeSheetHead($row_count, $column_count, $sheet_name='', array $header_types=array() )
 	{
 		trigger_error ( __FUNCTION__ . " is deprecated and will be removed in future releases.", E_USER_DEPRECATED);
-		$this->writeSheetHeader($this->current_sheet, $header_types);
+		$this->writeSheetHeader($this->current_sheet=$sheet_name, $header_types);
 	}
 
 	public function writeSheetCurrentRow($row) //formerly named writeSheetRow
