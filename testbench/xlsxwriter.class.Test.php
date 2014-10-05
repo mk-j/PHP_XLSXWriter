@@ -20,10 +20,11 @@ class XLSXWriterTest extends PHPUnit_Framework_TestCase
 	public function testWriteCell()
 	{
 		$filename = tempnam("/tmp", "xlsx_writer");
-        $fd = fopen($filename, "w+");
+		$file_writer = new XLSXWriter_BuffererWriter($filename);
+		
         $xlsx_writer = new _XLSXWriter_();
-        $xlsx_writer->writeCell($fd, 0, 0, '0123', 'string');
-        fclose($fd);
+        $xlsx_writer->writeCell($file_writer, 0, 0, '0123', 'string');
+        $file_writer->close();
         $cell_xml = file_get_contents($filename);
         $this->assertNotEquals('<c r="A1" s="0" t="n"><v>123</v></c>', $cell_xml);
         $this->assertEquals('<c r="A1" s="0" t="s"><v>0</v></c>', $cell_xml);//0123 should be the 0th index of the shared string array

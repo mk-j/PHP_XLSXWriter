@@ -38,7 +38,7 @@ class XLSXWriter
 			}
 		}
 	}
-	
+
 	protected function tempFilename()
 	{
 		$filename = tempnam("/tmp", "xlsx_writer_");
@@ -540,4 +540,4 @@ class XLSXWriter_BuffererWriter
 
 
 
-
+// vim: set filetype=php expandtab tabstop=4 shiftwidth=4 autoindent smartindent:
