@@ -3,6 +3,9 @@ set_include_path(__DIR__.DIRECTORY_SEPARATOR.'..'.PATH_SEPARATOR.get_include_pat
 include_once 'PHPUnit/Framework/TestCase.php'; // located in /usr/share/php
 include_once 'xlsxwriter.class.php';
 
+//TODO test double:writeSheetHeader
+//TODO test invalid UTF8
+//TODO test outoforder writeSheetRow('Sheet1',());
 
 class _XLSXWriter_ extends XLSXWriter
 {
@@ -30,6 +33,14 @@ class XLSXWriterTest extends PHPUnit_Framework_TestCase
         $this->assertEquals('<c r="A1" s="0" t="s"><v>0</v></c>', $cell_xml);//0123 should be the 0th index of the shared string array
         @unlink($filename);
     }
+
+    /**
+     * @covers XLSXWriter::writeToFile
+     */
+	public function testWriteToFile()
+	{
+		
+	}
 
     /**
      * @covers XLSXWriter::writeToFile

@@ -23,5 +23,6 @@ $writer->writeSheet($data2,'Sheet2');
 $writer->writeToFile('example.xlsx');
 //$writer->writeToStdOut();
 //echo $writer->writeToString();
+exit(0);
 
 

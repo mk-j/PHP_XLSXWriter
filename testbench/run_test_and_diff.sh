@@ -2,7 +2,7 @@
 
 mkdir -p test/;
 rm -rf test/*;
-phv test.php;
+php test.php;
 cp test.xlsx test/;
 cd test;
 unzip test.xlsx;
