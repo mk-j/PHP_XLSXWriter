@@ -66,9 +66,9 @@ $writer->writeToFile('example.xlsx');
 Load test with 50000 rows: (runs fast, with low memory usage)
 ```php
 include_once("xlsxwriter.class.php");
-
+$header = array('c1'=>'string','c2'=>'string','c3'=>'string','c4'=>'string');
 $writer = new XLSXWriter();
-$writer->writeSheetHeader( array('c1'=>'string','c2'=>'string','c3'=>'string','c4'=>'string') );//optional
+$writer->writeSheetHeader( $header );//optional
 for($i=0; $i<50000; $i++)
 {
     $writer->writeSheetRow( array(rand()%10000,rand()%10000,rand()%10000,rand()%10000) );
