@@ -69,6 +69,10 @@ class XLSXWriter
 
 	public function writeToFile($filename)
 	{
+		foreach($this->sheets as $sheet_name => $sheet) {
+			self::finalizeSheet($sheet_name);//making sure all footers have been written
+		}
+
 		@unlink($filename);//if the zip already exists, overwrite it
 		$zip = new ZipArchive();
 		if (empty($this->sheets))                       { self::log("Error in ".__CLASS__."::".__FUNCTION__.", no worksheets defined."); return; }
@@ -115,6 +119,7 @@ class XLSXWriter
 			'cell_formats' => array(),
 			'max_cell_tag_start' => 0,
 			'max_cell_tag_end' => 0,
+			'finalized' => false,
 		);
 		$sheet = &$this->sheets[$sheet_name];
 		$tabselected = count($this->sheets) == 1 ? 'true' : 'false';//only first sheet is selected
@@ -184,7 +189,7 @@ class XLSXWriter
 	
 	protected function finalizeSheet($sheet_name)
 	{
-		if (empty($sheet_name))
+		if (empty($sheet_name) || $this->sheets[$sheet_name]->finalized)
 			return;
 
 		$sheet = &$this->sheets[$sheet_name];
@@ -205,6 +210,7 @@ class XLSXWriter
 		$sheet->file_writer->fseek($sheet->max_cell_tag_start);
 		$sheet->file_writer->write($max_cell_tag.str_repeat(" ", $padding_length));
 		$sheet->file_writer->close();
+		$sheet->finalized=true;
 	}
 
 	public function writeSheet(array $data, $sheet_name='', array $header_types=array() )
