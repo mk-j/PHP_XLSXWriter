@@ -215,6 +215,7 @@ class XLSXWriter
 
 	public function writeSheet(array $data, $sheet_name='', array $header_types=array() )
 	{
+		$sheet_name = empty($sheet_name) ? 'Sheet1' : $sheet_name;
 		$data = empty($data) ? array(array('')) : $data;
 		if (!empty($header_types))
 		{
@@ -229,6 +230,7 @@ class XLSXWriter
 
 	public function writeSheetHead($row_count, $column_count, $sheet_name='', array $header_types=array() )
 	{
+		$sheet_name = empty($sheet_name) ? 'Sheet1' : $sheet_name;
 		trigger_error ( __FUNCTION__ . " is deprecated and will be removed in future releases.", E_USER_DEPRECATED);
 		$this->writeSheetHeader($this->current_sheet=$sheet_name, $header_types);
 	}
@@ -398,14 +400,16 @@ class XLSXWriter
 
 	protected function buildWorkbookXML()
 	{
+		$i=0;
 		$workbook_xml="";
 		$workbook_xml.='<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'."\n";
 		$workbook_xml.='<workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">';
 		$workbook_xml.='<fileVersion appName="Calc"/><workbookPr backupFile="false" showObjects="all" date1904="false"/><workbookProtection/>';
 		$workbook_xml.='<bookViews><workbookView activeTab="0" firstSheet="0" showHorizontalScroll="true" showSheetTabs="true" showVerticalScroll="true" tabRatio="212" windowHeight="8192" windowWidth="16384" xWindow="0" yWindow="0"/></bookViews>';
 		$workbook_xml.='<sheets>';
-		foreach($this->sheets as $i=>$sheet) {
+		foreach($this->sheets as $sheet_name=>$sheet) {
 			$workbook_xml.='<sheet name="'.self::xmlspecialchars($sheet->sheetname).'" sheetId="'.($i+1).'" state="visible" r:id="rId'.($i+2).'"/>';
+			$i++;
 		}
 		$workbook_xml.='</sheets>';
 		$workbook_xml.='<calcPr iterateCount="100" refMode="A1" iterate="false" iterateDelta="0.001"/></workbook>';
@@ -414,12 +418,14 @@ class XLSXWriter
 
 	protected function buildWorkbookRelsXML()
 	{
+		$i=0;
 		$wkbkrels_xml="";
 		$wkbkrels_xml.='<?xml version="1.0" encoding="UTF-8"?>'."\n";
 		$wkbkrels_xml.='<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">';
 		$wkbkrels_xml.='<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/>';
-		foreach($this->sheets as $i=>$sheet) {
+		foreach($this->sheets as $sheet_name=>$sheet) {
 			$wkbkrels_xml.='<Relationship Id="rId'.($i+2).'" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/'.($sheet->xmlname).'"/>';
+			$i++;
 		}
 		if (!empty($this->shared_strings)) {
 			$wkbkrels_xml.='<Relationship Id="rId'.(count($this->sheets)+2).'" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/sharedStrings" Target="sharedStrings.xml"/>';
@@ -436,7 +442,7 @@ class XLSXWriter
 		$content_types_xml.='<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">';
 		$content_types_xml.='<Override PartName="/_rels/.rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>';
 		$content_types_xml.='<Override PartName="/xl/_rels/workbook.xml.rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>';
-		foreach($this->sheets as $i=>$sheet) {
+		foreach($this->sheets as $sheet_name=>$sheet) {
 			$content_types_xml.='<Override PartName="/xl/worksheets/'.($sheet->xmlname).'" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>';
 		}
 		if (!empty($this->shared_strings)) {
