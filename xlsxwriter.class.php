@@ -47,7 +47,7 @@ class XLSXWriter
 
 	protected function tempFilename()
 	{
-		$filename = tempnam("/tmp", "xlsx_writer_");
+		$filename = tempnam(sys_get_temp_dir(), "xlsx_writer_");
 		$this->temp_files[] = $filename;
 		return $filename;
 	}
