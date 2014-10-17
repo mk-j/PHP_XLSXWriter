@@ -3,6 +3,8 @@ PHP_XLSXWriter
 
 This library is designed to be lightweight, and have relatively low memory usage.
 
+**A bug caused this library to be unstable between Oct 5 and Oct 17, 2014 please redownload if you were affected**
+
 It is designed to output an Excel spreadsheet in with (Office 2007+) xlsx format, with just basic features supported:
 * supports PHP 5.2.1+
 * takes UTF-8 encoded input
