@@ -36,6 +36,9 @@ do
     mv temp.xml $FILE;
 done;
 
+xmllint --format "test/xl/_rels/workbook.xml.rels" > temp.xml;
+mv temp.xml test/xl/_rels/workbook.xml.rels;
+
 for FILE in openoffice/*.xml
 do
     xmllint --format "$FILE" > temp.xml;
@@ -53,6 +56,9 @@ do
     xmllint --format "$FILE" > temp.xml;
     mv temp.xml $FILE;
 done;
+
+xmllint --format "openoffice/xl/_rels/workbook.xml.rels" > temp.xml;
+mv temp.xml openoffice/xl/_rels/workbook.xml.rels;
 
 echo "Now, run this command:"
 echo "  meld openoffice/ test/";

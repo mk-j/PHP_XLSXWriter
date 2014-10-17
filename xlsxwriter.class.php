@@ -20,11 +20,6 @@ class XLSXWriter
 
 	protected $current_sheet = '';
 
-	protected $file;
-	protected $row_num;
-	protected $header_offset;
-	protected $cell_formats_arr;
-
 	public function __construct()
 	{
 		if(!ini_get('date.timezone'))
@@ -113,7 +108,6 @@ class XLSXWriter
 			'filename' => $sheet_filename, 
 			'sheetname' => $sheet_name, 
 			'xmlname' => $sheet_xmlname,
-			'header_offset' => 0,
 			'row_count' => 0,
 			'file_writer' => new XLSXWriter_BuffererWriter($sheet_filename),
 			'cell_formats' => array(),
@@ -158,16 +152,12 @@ class XLSXWriter
 			$this->writeCell($sheet->file_writer, 0, $k, $v, $cell_format = 'string');
 		}
 		$sheet->file_writer->write('</row>');
-		$sheet->header_offset=1;
 		$sheet->row_count++;
 		$this->current_sheet = $sheet_name;
 	}
 
-	public function writeSheetRow($sheet_name, array $row=null)//TODO, remove null, when removing E_USER_DEPRECATED
+	public function writeSheetRow($sheet_name, array $row)
 	{
-		if (is_array($sheet_name) && empty($row))
-			return $this->writeSheetCurrentRow($row=$sheet_name);//A previous version of writeSheetRow was renamed to writeSheetCurrentRow
-
 		if (empty($sheet_name) || empty($row))
 			return;
 
@@ -178,9 +168,9 @@ class XLSXWriter
 			$sheet->cell_formats = array_fill(0, count($row), 'string');
 		}
 
-		$sheet->file_writer->write('<row collapsed="false" customFormat="false" customHeight="false" hidden="false" ht="12.1" outlineLevel="0" r="' . ($sheet->row_count + $sheet->header_offset + 1) . '">');
+		$sheet->file_writer->write('<row collapsed="false" customFormat="false" customHeight="false" hidden="false" ht="12.1" outlineLevel="0" r="' . ($sheet->row_count + 1) . '">');
 		foreach ($row as $k => $v) {
-			$this->writeCell($sheet->file_writer, $sheet->row_count + $sheet->header_offset -1, $k, $v, $sheet->cell_formats[$k]);
+			$this->writeCell($sheet->file_writer, $sheet->row_count, $k, $v, $sheet->cell_formats[$k]);
 		}
 		$sheet->file_writer->write('</row>');
 		$sheet->row_count++;
@@ -226,25 +216,6 @@ class XLSXWriter
 			$this->writeSheetRow($sheet_name, $row);
 		}
 		$this->finalizeSheet($sheet_name);
-	}
-
-	public function writeSheetHead($row_count, $column_count, $sheet_name='', array $header_types=array() )
-	{
-		$sheet_name = empty($sheet_name) ? 'Sheet1' : $sheet_name;
-		trigger_error ( __FUNCTION__ . " is deprecated and will be removed in future releases.", E_USER_DEPRECATED);
-		$this->writeSheetHeader($this->current_sheet=$sheet_name, $header_types);
-	}
-
-	public function writeSheetCurrentRow($row) //formerly named writeSheetRow
-	{
-		trigger_error ( __FUNCTION__ . " is deprecated and will be removed in future releases.", E_USER_DEPRECATED);
-		$this->writeSheetRow($this->current_sheet, $row);
-	}
-
-	public function writeSheetFooter()
-	{
-		trigger_error ( __FUNCTION__ . " is deprecated and will be removed in future releases.", E_USER_DEPRECATED);
-		$this->finalizeSheet($this->current_sheet);
 	}
 
 	protected function writeCell(XLSXWriter_BuffererWriter &$file, $row_number, $column_number, $value, $cell_format)
