@@ -1,5 +1,5 @@
 {
-    "name": "mk-j/PHP_XLSXWriter",
+    "name": "mk-j/php_xlsxwriter",
     "description": "PHP Library to write XLSX files",
     "keywords": ["php", "library","xls", "xlsx", "excel"],
     "type": "project",
