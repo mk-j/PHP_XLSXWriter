@@ -1,0 +1,13 @@
+{
+    "name": "mk-j/PHP_XLSXWriter",
+    "description": "PHP Library to write XLSX files",
+    "keywords": ["php", "library","xls", "xlsx", "excel"],
+    "type": "project",
+    "homepage": "https://github.com/mk-j/PHP_XLSXWriter",
+    "minimum-stability": "dev",
+    "license": "MIT",
+
+    "autoload": {
+        "classmap": ["xlsxwriter.class.php"]
+    }
+}
