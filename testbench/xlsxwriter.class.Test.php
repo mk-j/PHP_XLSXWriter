@@ -39,14 +39,6 @@ class XLSXWriterTest extends PHPUnit_Framework_TestCase
      */
 	public function testWriteToFile()
 	{
-		
-	}
-
-    /**
-     * @covers XLSXWriter::writeToFile
-     */
-	public function testWriteToFile()
-	{
 		$filename = tempnam("/tmp", "xlsx_writer");
 		
 		$header = array('0'=>'string','1'=>'string','2'=>'string','3'=>'string');
