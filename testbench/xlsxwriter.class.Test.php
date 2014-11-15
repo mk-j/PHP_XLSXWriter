@@ -1,7 +1,6 @@
 <?php
-set_include_path(__DIR__.DIRECTORY_SEPARATOR.'..'.PATH_SEPARATOR.get_include_path());
-include_once 'PHPUnit/Framework/TestCase.php'; // located in /usr/share/php
-include_once 'xlsxwriter.class.php';
+
+include_once __DIR__.'/../vendor/autoload.php';
 
 //TODO test double:writeSheetHeader
 //TODO test invalid UTF8
@@ -9,8 +8,8 @@ include_once 'xlsxwriter.class.php';
 
 class _XLSXWriter_ extends XLSXWriter
 {
-    public function writeCell() { 
-		return call_user_func_array('parent::writeCell', func_get_args()); 
+    public function writeCell(XLSXWriter_BuffererWriter &$file, $row_number, $column_number, $value, $cell_format) {
+		return call_user_func_array('parent::writeCell', func_get_args());
 	}
 }
 //Just a simple test, by no means comprehensive
@@ -33,14 +32,6 @@ class XLSXWriterTest extends PHPUnit_Framework_TestCase
         $this->assertEquals('<c r="A1" s="0" t="s"><v>0</v></c>', $cell_xml);//0123 should be the 0th index of the shared string array
         @unlink($filename);
     }
-
-    /**
-     * @covers XLSXWriter::writeToFile
-     */
-	public function testWriteToFile()
-	{
-		
-	}
 
     /**
      * @covers XLSXWriter::writeToFile
