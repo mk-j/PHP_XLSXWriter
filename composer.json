@@ -4,10 +4,12 @@
     "keywords": ["php", "library","xls", "xlsx", "excel"],
     "type": "project",
     "homepage": "https://github.com/mk-j/PHP_XLSXWriter",
-    "minimum-stability": "dev",
     "license": "MIT",
 
     "autoload": {
         "classmap": ["xlsxwriter.class.php"]
+    },
+    "require-dev": {
+        "phpunit/phpunit": "4.3.*"
     }
 }
