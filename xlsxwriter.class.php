@@ -248,8 +248,8 @@ class XLSXWriter
 		$file->write('<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'."\n");
 		$file->write('<styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">');
 		$file->write('<numFmts count="4">');
-		$file->write(		'<numFmt formatCode="GENERAL" numFmtId="164"/>');
-		$file->write(		'<numFmt formatCode="[$$-1009]#,##0.00;[RED]\-[$$-1009]#,##0.00" numFmtId="165"/>');
+		$file->write(		'<numFmt formatCode="General" numFmtId="164"/>');
+		$file->write(		'<numFmt formatCode="0.00;[RED]-0.00\-" numFmtId="165"/>');
 		$file->write(		'<numFmt formatCode="YYYY-MM-DD\ HH:MM:SS" numFmtId="166"/>');
 		$file->write(		'<numFmt formatCode="YYYY-MM-DD" numFmtId="167"/>');
 		$file->write('</numFmts>');
