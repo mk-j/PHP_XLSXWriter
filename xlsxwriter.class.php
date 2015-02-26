@@ -224,7 +224,7 @@ class XLSXWriter
 		$cell = self::xlsCell($row_number, $column_number);
 		$s = isset($styles[$cell_format]) ? $styles[$cell_format] : '0';
 
-		if (!is_scalar($value) && $value=='') { //objects, array, empty
+		if (!is_scalar($value) || $value==='') { //objects, array, empty
 			$file->write('<c r="'.$cell.'" s="'.$s.'"/>');
 		} elseif ($cell_format=='date') {
 			$file->write('<c r="'.$cell.'" s="'.$s.'" t="n"><v>'.intval(self::convert_date_time($value)).'</v></c>');
