@@ -17,6 +17,8 @@ class XLSXWriter
 	protected $shared_strings = array();//unique set
 	protected $shared_string_count = 0;//count of non-unique references to the unique set
 	protected $temp_files = array();
+	protected $cell_formats = array();//contains excel format like YYYY-MM-DD HH:MM:SS
+	protected $cell_types = array();//contains friendly format like datetime
 
 	protected $current_sheet = '';
 
@@ -27,6 +29,7 @@ class XLSXWriter
 			//using date functions can kick out warning if this isn't set
 			date_default_timezone_set('UTC');
 		}
+		$this->addCellFormat($cell_format='GENERAL');
 	}
 
 	public function setAuthor($author='') { $this->author=$author; }
@@ -110,7 +113,7 @@ class XLSXWriter
 			'xmlname' => $sheet_xmlname,
 			'row_count' => 0,
 			'file_writer' => new XLSXWriter_BuffererWriter($sheet_filename),
-			'cell_formats' => array(),
+			'columns' => array(),
 			'max_cell_tag_start' => 0,
 			'max_cell_tag_end' => 0,
 			'finalized' => false,
@@ -137,6 +140,67 @@ class XLSXWriter
 		$sheet->file_writer->write(  '<sheetData>');
 	}
 
+	private function determineCellType($cell_format)
+	{
+		$cell_format = str_replace("[RED]", "", $cell_format);
+		if ($cell_format=='GENERAL') return 'string';
+		if ($cell_format=='INTEGER') return 'numeric';
+		if (preg_match("/[H]{1,2}:[M]{1,2}/", $cell_format)) return 'datetime';
+		if (preg_match("/[M]{1,2}:[S]{1,2}/", $cell_format)) return 'datetime';
+		if (preg_match("/[YY]{2,4}/", $cell_format)) return 'date';
+		if (preg_match("/[D]{1,2}/", $cell_format)) return 'date';
+		if (preg_match("/[M]{1,2}/", $cell_format)) return 'date';
+		if (preg_match("/$/", $cell_format)) return 'currency';
+		if (preg_match("/%/", $cell_format)) return 'percent';
+		if (preg_match("/0/", $cell_format)) return 'numeric';
+		return 'string';
+	}
+	
+	private function escapeCellFormat($cell_format)
+	{
+		$ignore_until='';
+		$escaped = '';
+		for($i=0,$ix=strlen($cell_format); $i<$ix; $i++)
+		{
+			$c = $cell_format[$i];
+			if ($ignore_until=='' && $c=='[')
+				$ignore_until=']';
+			else if ($ignore_until=='' && $c=='"')
+				$ignore_until='"';
+			else if ($ignore_until==$c)
+				$ignore_until='';
+			if ($ignore_until=='' && ($c==' ' || $c=='-'  || $c=='('  || $c==')') && ($i==0 || $cell_format[$i-1]!='_'))
+				$escaped.= "\\".$c;
+			else
+				$escaped.= $c;
+		}
+		return $escaped;
+		//return str_replace( array(" ","-", "(", ")"), array("\ ","\-", "\(", "\)"), $cell_format);//TODO, needs more escaping
+	}
+
+	private function addCellFormat($cell_format)
+	{
+		//for backwards compatibility, to handle older versions
+		if      ($cell_format=='string')   $cell_format='GENERAL';
+		else if ($cell_format=='date')     $cell_format='YYYY-MM-DD';
+		else if ($cell_format=='datetime') $cell_format='YYYY-MM-DD HH:MM:SS';
+		else if ($cell_format=='money')    $cell_format='[$$-1009]#,##0.00;[RED]-[$$-1009]#,##0.00';
+		else if ($cell_format=='euro')     $cell_format='#,##0.00 [$€-407];[RED]-#,##0.00 [$€-407]';
+		else if ($cell_format=='NN')       $cell_format='DDD';
+		else if ($cell_format=='NNN')      $cell_format='DDDD';
+		else if ($cell_format=='NNNN')     $cell_format='DDDD", "';
+
+		$cell_format = strtoupper($cell_format);
+		$position = array_search($cell_format, $this->cell_formats, $strict=true);
+		if ($position===false)
+		{
+			$position = count($this->cell_formats);
+			$this->cell_formats[] = $this->escapeCellFormat($cell_format);
+			$this->cell_types[] = $this->determineCellType($cell_format);
+		}
+		return $position;
+	}
+
 	public function writeSheetHeader($sheet_name, array $header_types)
 	{
 		if (empty($sheet_name) || empty($header_types) || !empty($this->sheets[$sheet_name]))
@@ -144,12 +208,16 @@ class XLSXWriter
 
 		self::initializeSheet($sheet_name);
 		$sheet = &$this->sheets[$sheet_name];
-		$sheet->cell_formats = array_values($header_types);
+		$sheet->columns = array();
+		foreach($header_types as $v)
+		{
+			$sheet->columns[] = $this->addCellFormat($v);
+		}
 		$header_row = array_keys($header_types);
 
 		$sheet->file_writer->write('<row collapsed="false" customFormat="false" customHeight="false" hidden="false" ht="12.1" outlineLevel="0" r="' . (1) . '">');
 		foreach ($header_row as $k => $v) {
-			$this->writeCell($sheet->file_writer, 0, $k, $v, $cell_format = 'string');
+			$this->writeCell($sheet->file_writer, 0, $k, $v, $cell_format_index = '0');//'0'=>'string'
 		}
 		$sheet->file_writer->write('</row>');
 		$sheet->row_count++;
@@ -163,14 +231,15 @@ class XLSXWriter
 
 		self::initializeSheet($sheet_name);
 		$sheet = &$this->sheets[$sheet_name];
-		if (empty($sheet->cell_formats))
+		if (empty($sheet->columns))
 		{
-			$sheet->cell_formats = array_fill(0, count($row), 'string');
+			$sheet->columns = array_fill($from=0, $until=count($row), '0');//'0'=>'string'
 		}
 
 		$sheet->file_writer->write('<row collapsed="false" customFormat="false" customHeight="false" hidden="false" ht="12.1" outlineLevel="0" r="' . ($sheet->row_count + 1) . '">');
+		//$row = array_slice($row, 0, count($sheet->columns) );
 		foreach ($row as $k => $v) {
-			$this->writeCell($sheet->file_writer, $sheet->row_count, $k, $v, $sheet->cell_formats[$k]);
+			$this->writeCell($sheet->file_writer, $sheet->row_count, $k, $v, $sheet->columns[$k]);
 		}
 		$sheet->file_writer->write('</row>');
 		$sheet->row_count++;
@@ -194,7 +263,7 @@ class XLSXWriter
 		$sheet->file_writer->write(    '</headerFooter>');
 		$sheet->file_writer->write('</worksheet>');
 
-		$max_cell = self::xlsCell($sheet->row_count - 1, count($sheet->cell_formats) - 1);
+		$max_cell = self::xlsCell($sheet->row_count - 1, count($sheet->columns) - 1);
 		$max_cell_tag = '<dimension ref="A1:' . $max_cell . '"/>';
 		$padding_length = $sheet->max_cell_tag_end - $sheet->max_cell_tag_start - strlen($max_cell_tag);
 		$sheet->file_writer->fseek($sheet->max_cell_tag_start);
@@ -218,28 +287,29 @@ class XLSXWriter
 		$this->finalizeSheet($sheet_name);
 	}
 
-	protected function writeCell(XLSXWriter_BuffererWriter &$file, $row_number, $column_number, $value, $cell_format)
+	protected function writeCell(XLSXWriter_BuffererWriter &$file, $row_number, $column_number, $value, $cell_format_index)
 	{
-		static $styles = array('money'=>1,'dollar'=>1,'datetime'=>2,'date'=>3,'string'=>0);
-		$cell = self::xlsCell($row_number, $column_number);
-		$s = isset($styles[$cell_format]) ? $styles[$cell_format] : '0';
-
+		$cell_type = $this->cell_types[$cell_format_index];
+		$cell_name = self::xlsCell($row_number, $column_number);
+		
 		if (!is_scalar($value) || $value==='') { //objects, array, empty
-			$file->write('<c r="'.$cell.'" s="'.$s.'"/>');
-		} elseif ($cell_format=='date') {
-			$file->write('<c r="'.$cell.'" s="'.$s.'" t="n"><v>'.intval(self::convert_date_time($value)).'</v></c>');
-		} elseif ($cell_format=='datetime') {
-			$file->write('<c r="'.$cell.'" s="'.$s.'" t="n"><v>'.self::convert_date_time($value).'</v></c>');
-		} elseif (!is_string($value)) {
-			$file->write('<c r="'.$cell.'" s="'.$s.'" t="n"><v>'.($value*1).'</v></c>');//int,float, etc
-		} elseif ($value{0}!='0' && filter_var($value, FILTER_VALIDATE_INT)){ //excel wants to trim leading zeros
-			$file->write('<c r="'.$cell.'" s="'.$s.'" t="n"><v>'.($value).'</v></c>');//numeric string
-		} elseif ($value{0}=='='){
-			$file->write('<c r="'.$cell.'" s="'.$s.'" t="s"><f>'.self::xmlspecialchars($value).'</f></c>');
-		} elseif ($value!==''){
-			$file->write('<c r="'.$cell.'" s="'.$s.'" t="s"><v>'.self::xmlspecialchars($this->setSharedString($value)).'</v></c>');
+			$file->write('<c r="'.$cell_name.'" s="'.$cell_format_index.'"/>');
+		} elseif (is_string($value) && $value{0}=='='){
+			$file->write('<c r="'.$cell_name.'" s="'.$cell_format_index.'" t="s"><f>'.self::xmlspecialchars($value).'</f></c>');
+		} elseif ($cell_type=='date') {
+			$file->write('<c r="'.$cell_name.'" s="'.$cell_format_index.'" t="n"><v>'.intval(self::convert_date_time($value)).'</v></c>');
+		} elseif ($cell_type=='datetime') {
+			$file->write('<c r="'.$cell_name.'" s="'.$cell_format_index.'" t="n"><v>'.self::convert_date_time($value).'</v></c>');
+		} elseif ($cell_type=='currency' || $cell_type=='percent' || $cell_type=='numeric') {
+			$file->write('<c r="'.$cell_name.'" s="'.$cell_format_index.'" t="n"><v>'.self::xmlspecialchars($value).'</v></c>');//int,float,currency
+		} else if (!is_string($value)){ 
+			$file->write('<c r="'.$cell_name.'" s="'.$cell_format_index.'" t="n"><v>'.($value*1).'</v></c>');
+		} else if ($value{0}!='0' && filter_var($value, FILTER_VALIDATE_INT, array('options'=>array('max_range'=>2147483647)))){ 
+			$file->write('<c r="'.$cell_name.'" s="'.$cell_format_index.'" t="n"><v>'.($value*1).'</v></c>');
+		} else { //implied: ($cell_format=='string')
+			$file->write('<c r="'.$cell_name.'" s="'.$cell_format_index.'" t="s"><v>'.self::xmlspecialchars($this->setSharedString($value)).'</v></c>');
 		}
-	}
+	}//
 
 	protected function writeStylesXML()
 	{
@@ -247,11 +317,15 @@ class XLSXWriter
 		$file = new XLSXWriter_BuffererWriter($temporary_filename);
 		$file->write('<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'."\n");
 		$file->write('<styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">');
-		$file->write('<numFmts count="4">');
-		$file->write(		'<numFmt formatCode="GENERAL" numFmtId="164"/>');
-		$file->write(		'<numFmt formatCode="[$$-1009]#,##0.00;[RED]\-[$$-1009]#,##0.00" numFmtId="165"/>');
-		$file->write(		'<numFmt formatCode="YYYY-MM-DD\ HH:MM:SS" numFmtId="166"/>');
-		$file->write(		'<numFmt formatCode="YYYY-MM-DD" numFmtId="167"/>');
+		$file->write('<numFmts count="'.count($this->cell_formats).'">');
+		foreach($this->cell_formats as $i=>$v)
+		{
+			$file->write('<numFmt numFmtId="'.(164+$i).'" formatCode="'.self::xmlspecialchars($v).'" />');
+		}
+		//$file->write(		'<numFmt formatCode="GENERAL" numFmtId="164"/>');
+		//$file->write(		'<numFmt formatCode="[$$-1009]#,##0.00;[RED]\-[$$-1009]#,##0.00" numFmtId="165"/>');
+		//$file->write(		'<numFmt formatCode="YYYY-MM-DD\ HH:MM:SS" numFmtId="166"/>');
+		//$file->write(		'<numFmt formatCode="YYYY-MM-DD" numFmtId="167"/>');
 		$file->write('</numFmts>');
 		$file->write('<fonts count="4">');
 		$file->write(		'<font><name val="Arial"/><charset val="1"/><family val="2"/><sz val="10"/></font>');
@@ -286,12 +360,19 @@ class XLSXWriter
 		$file->write(		'<xf applyAlignment="false" applyBorder="false" applyFont="true" applyProtection="false" borderId="0" fillId="0" fontId="1" numFmtId="42"/>');
 		$file->write(		'<xf applyAlignment="false" applyBorder="false" applyFont="true" applyProtection="false" borderId="0" fillId="0" fontId="1" numFmtId="9"/>');
 		$file->write(	'</cellStyleXfs>');
-		$file->write(	'<cellXfs count="4">');
-		$file->write(		'<xf applyAlignment="false" applyBorder="false" applyFont="false" applyProtection="false" borderId="0" fillId="0" fontId="0" numFmtId="164" xfId="0"/>');
-		$file->write(		'<xf applyAlignment="false" applyBorder="false" applyFont="false" applyProtection="false" borderId="0" fillId="0" fontId="0" numFmtId="165" xfId="0"/>');
-		$file->write(		'<xf applyAlignment="false" applyBorder="false" applyFont="false" applyProtection="false" borderId="0" fillId="0" fontId="0" numFmtId="166" xfId="0"/>');
-		$file->write(		'<xf applyAlignment="false" applyBorder="false" applyFont="false" applyProtection="false" borderId="0" fillId="0" fontId="0" numFmtId="167" xfId="0"/>');
+
+		$file->write(	'<cellXfs count="'.count($this->cell_formats).'">');
+		foreach($this->cell_formats as $i=>$v)
+		{
+			$file->write('<xf applyAlignment="false" applyBorder="false" applyFont="false" applyProtection="false" borderId="0" fillId="0" fontId="0" numFmtId="'.(164+$i).'" xfId="0"/>');
+		}
 		$file->write(	'</cellXfs>');
+		//$file->write(	'<cellXfs count="4">');
+		//$file->write(		'<xf applyAlignment="false" applyBorder="false" applyFont="false" applyProtection="false" borderId="0" fillId="0" fontId="0" numFmtId="164" xfId="0"/>');
+		//$file->write(		'<xf applyAlignment="false" applyBorder="false" applyFont="false" applyProtection="false" borderId="0" fillId="0" fontId="0" numFmtId="165" xfId="0"/>');
+		//$file->write(		'<xf applyAlignment="false" applyBorder="false" applyFont="false" applyProtection="false" borderId="0" fillId="0" fontId="0" numFmtId="166" xfId="0"/>');
+		//$file->write(		'<xf applyAlignment="false" applyBorder="false" applyFont="false" applyProtection="false" borderId="0" fillId="0" fontId="0" numFmtId="167" xfId="0"/>');
+		//$file->write(	'</cellXfs>');
 		$file->write(	'<cellStyles count="6">');
 		$file->write(		'<cellStyle builtinId="0" customBuiltin="false" name="Normal" xfId="0"/>');
 		$file->write(		'<cellStyle builtinId="3" customBuiltin="false" name="Comma" xfId="15"/>');
