@@ -149,7 +149,7 @@ class XLSXWriter
 
 		$sheet->file_writer->write('<row collapsed="false" customFormat="false" customHeight="false" hidden="false" ht="12.1" outlineLevel="0" r="' . (1) . '">');
 		foreach ($header_row as $k => $v) {
-			$this->writeCell($sheet->file_writer, 0, $k, $v, $cell_format = 'string');
+			$this->writeCell($sheet->file_writer, 0, $k, $v, 'blackheader');
 		}
 		$sheet->file_writer->write('</row>');
 		$sheet->row_count++;
@@ -170,7 +170,11 @@ class XLSXWriter
 
 		$sheet->file_writer->write('<row collapsed="false" customFormat="false" customHeight="false" hidden="false" ht="12.1" outlineLevel="0" r="' . ($sheet->row_count + 1) . '">');
 		foreach ($row as $k => $v) {
-			$this->writeCell($sheet->file_writer, $sheet->row_count, $k, $v, $sheet->cell_formats[$k]);
+			if (is_array($v)) {
+				$this->writeCell($sheet->file_writer, $sheet->row_count, $k, $v[0], $v[1]);
+			} else {
+				$this->writeCell($sheet->file_writer, $sheet->row_count, $k, $v, $sheet->cell_formats[$k]);
+			}
 		}
 		$sheet->file_writer->write('</row>');
 		$sheet->row_count++;
@@ -220,12 +224,23 @@ class XLSXWriter
 
 	protected function writeCell(XLSXWriter_BuffererWriter &$file, $row_number, $column_number, $value, $cell_format)
 	{
-		static $styles = array('money'=>1,'dollar'=>1,'datetime'=>2,'date'=>3,'string'=>0);
+		static $styles = array(
+			'money' => 1, 
+			'dollar' => 1, 
+			'datetime' => 2, 
+			'date' => 3, 
+			'string' => 0, 
+			'number.2' => 4, 
+			'number.4' => 5, 
+			'blackheader' => 6
+		);
 		$cell = self::xlsCell($row_number, $column_number);
 		$s = isset($styles[$cell_format]) ? $styles[$cell_format] : '0';
 
 		if (!is_scalar($value) || $value==='') { //objects, array, empty
 			$file->write('<c r="'.$cell.'" s="'.$s.'"/>');
+		} elseif (preg_match('#^number\.[0-9]$#', $cell_format)) {
+			$file->write('<c r="'.$cell.'" s="'.$s.'" t="n"><v>'.$value.'</v></c>');
 		} elseif ($cell_format=='date') {
 			$file->write('<c r="'.$cell.'" s="'.$s.'" t="n"><v>'.intval(self::convert_date_time($value)).'</v></c>');
 		} elseif ($cell_format=='datetime') {
@@ -247,19 +262,26 @@ class XLSXWriter
 		$file = new XLSXWriter_BuffererWriter($temporary_filename);
 		$file->write('<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'."\n");
 		$file->write('<styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">');
-		$file->write('<numFmts count="4">');
+		$file->write('<numFmts count="5">');
 		$file->write(		'<numFmt formatCode="GENERAL" numFmtId="164"/>');
 		$file->write(		'<numFmt formatCode="[$$-1009]#,##0.00;[RED]\-[$$-1009]#,##0.00" numFmtId="165"/>');
 		$file->write(		'<numFmt formatCode="YYYY-MM-DD\ HH:MM:SS" numFmtId="166"/>');
 		$file->write(		'<numFmt formatCode="YYYY-MM-DD" numFmtId="167"/>');
+		$file->write(		'<numFmt formatCode="#,##0.00" numFmtId="168"/>');
+		$file->write(		'<numFmt formatCode="0.0000" numFmtId="169"/>');
 		$file->write('</numFmts>');
 		$file->write('<fonts count="4">');
 		$file->write(		'<font><name val="Arial"/><charset val="1"/><family val="2"/><sz val="10"/></font>');
 		$file->write(		'<font><name val="Arial"/><family val="0"/><sz val="10"/></font>');
 		$file->write(		'<font><name val="Arial"/><family val="0"/><sz val="10"/></font>');
 		$file->write(		'<font><name val="Arial"/><family val="0"/><sz val="10"/></font>');
+		$file->write(		'<font><name val="Arial"/><b val="true"/><charset val="1"/><family val="2"/><sz val="10"/></font>');
 		$file->write('</fonts>');
-		$file->write('<fills count="2"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill></fills>');
+		$file->write('<fills count="2">');
+		$file->write('		<fill><patternFill patternType="none"/></fill>');
+		$file->write('		<fill><patternFill patternType="gray125"/></fill>');
+		$file->write('		<fill><patternFill patternType="solid"><fgColor rgb="FF000000"/><bgColor rgb="FF003300"/></patternFill></fill>');
+		$file->write('</fills>');
 		$file->write('<borders count="1"><border diagonalDown="false" diagonalUp="false"><left/><right/><top/><bottom/><diagonal/></border></borders>');
 		$file->write(	'<cellStyleXfs count="20">');
 		$file->write(		'<xf applyAlignment="true" applyBorder="true" applyFont="true" applyProtection="true" borderId="0" fillId="0" fontId="0" numFmtId="164">');
@@ -286,11 +308,14 @@ class XLSXWriter
 		$file->write(		'<xf applyAlignment="false" applyBorder="false" applyFont="true" applyProtection="false" borderId="0" fillId="0" fontId="1" numFmtId="42"/>');
 		$file->write(		'<xf applyAlignment="false" applyBorder="false" applyFont="true" applyProtection="false" borderId="0" fillId="0" fontId="1" numFmtId="9"/>');
 		$file->write(	'</cellStyleXfs>');
-		$file->write(	'<cellXfs count="4">');
+		$file->write(	'<cellXfs count="5">');
 		$file->write(		'<xf applyAlignment="false" applyBorder="false" applyFont="false" applyProtection="false" borderId="0" fillId="0" fontId="0" numFmtId="164" xfId="0"/>');
 		$file->write(		'<xf applyAlignment="false" applyBorder="false" applyFont="false" applyProtection="false" borderId="0" fillId="0" fontId="0" numFmtId="165" xfId="0"/>');
 		$file->write(		'<xf applyAlignment="false" applyBorder="false" applyFont="false" applyProtection="false" borderId="0" fillId="0" fontId="0" numFmtId="166" xfId="0"/>');
 		$file->write(		'<xf applyAlignment="false" applyBorder="false" applyFont="false" applyProtection="false" borderId="0" fillId="0" fontId="0" numFmtId="167" xfId="0"/>');
+		$file->write(		'<xf applyAlignment="false" applyBorder="false" applyFont="false" applyProtection="false" borderId="0" fillId="0" fontId="0" numFmtId="168" xfId="0"/>');
+		$file->write(		'<xf applyAlignment="false" applyBorder="false" applyFont="false" applyProtection="false" borderId="0" fillId="0" fontId="0" numFmtId="169" xfId="0"/>');
+		$file->write(		'<xf applyAlignment="false" applyBorder="false" applyFont="false" applyProtection="false" borderId="0" fillId="2" fontId="4" numFmtId="164" xfId="0"/>');
 		$file->write(	'</cellXfs>');
 		$file->write(	'<cellStyles count="6">');
 		$file->write(		'<cellStyle builtinId="0" customBuiltin="false" name="Normal" xfId="0"/>');
