@@ -68,14 +68,14 @@ class XLSXWriter
 			self::finalizeSheet($sheet_name);//making sure all footers have been written
 		}
 
-        if ( file_exists( $filename ) ) {
-            if ( is_writable( $filename ) ) {
-                @unlink( $filename ); //if the zip already exists, remove it
-            } else {
-                self::log( "Error in " . __CLASS__ . "::" . __FUNCTION__ . ", file is not writeable." );
-                return;
-            }
-        }
+		if ( file_exists( $filename ) ) {
+			if ( is_writable( $filename ) ) {
+				@unlink( $filename ); //if the zip already exists, remove it
+			} else {
+				self::log( "Error in " . __CLASS__ . "::" . __FUNCTION__ . ", file is not writeable." );
+				return;
+			}
+		}
 		$zip = new ZipArchive();
 		if (empty($this->sheets))                       { self::log("Error in ".__CLASS__."::".__FUNCTION__.", no worksheets defined."); return; }
 		if (!$zip->open($filename, ZipArchive::CREATE)) { self::log("Error in ".__CLASS__."::".__FUNCTION__.", unable to create zip."); return; }
