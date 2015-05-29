@@ -207,6 +207,18 @@ class XLSXWriter
 		$sheet->finalized=true;
 	}
 
+	public function writeCSV(array $data, array $header_types=array() )
+	{
+		$header_text = array_keys($header_types);
+
+		$output = '';
+		$output .= implode(';', $header_text) . "\n";
+		$output .= implode("\n", array_map(function($array) {
+			return implode(';', $array);
+		}, $data));
+		return print_r($output);
+	}
+
 	public function writeSheet(array $data, $sheet_name='', array $header_types=array() )
 	{
 		$sheet_name = empty($sheet_name) ? 'Sheet1' : $sheet_name;
@@ -262,7 +274,7 @@ class XLSXWriter
 		$file = new XLSXWriter_BuffererWriter($temporary_filename);
 		$file->write('<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'."\n");
 		$file->write('<styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">');
-		$file->write('<numFmts count="5">');
+		$file->write('<numFmts count="6">');
 		$file->write(		'<numFmt formatCode="GENERAL" numFmtId="164"/>');
 		$file->write(		'<numFmt formatCode="[$$-1009]#,##0.00;[RED]\-[$$-1009]#,##0.00" numFmtId="165"/>');
 		$file->write(		'<numFmt formatCode="YYYY-MM-DD\ HH:MM:SS" numFmtId="166"/>');
@@ -270,17 +282,17 @@ class XLSXWriter
 		$file->write(		'<numFmt formatCode="#,##0.00" numFmtId="168"/>');
 		$file->write(		'<numFmt formatCode="0.0000" numFmtId="169"/>');
 		$file->write('</numFmts>');
-		$file->write('<fonts count="4">');
+		$file->write('<fonts count="5">');
 		$file->write(		'<font><name val="Arial"/><charset val="1"/><family val="2"/><sz val="10"/></font>');
 		$file->write(		'<font><name val="Arial"/><family val="0"/><sz val="10"/></font>');
 		$file->write(		'<font><name val="Arial"/><family val="0"/><sz val="10"/></font>');
 		$file->write(		'<font><name val="Arial"/><family val="0"/><sz val="10"/></font>');
 		$file->write(		'<font><name val="Arial"/><b val="true"/><charset val="1"/><family val="2"/><sz val="10"/></font>');
 		$file->write('</fonts>');
-		$file->write('<fills count="2">');
+		$file->write('<fills count="3">');
 		$file->write('		<fill><patternFill patternType="none"/></fill>');
 		$file->write('		<fill><patternFill patternType="gray125"/></fill>');
-		$file->write('		<fill><patternFill patternType="solid"><fgColor rgb="FF000000"/><bgColor rgb="FF003300"/></patternFill></fill>');
+		$file->write('		<fill><patternFill patternType="solid"><fgColor theme="0" tint="-0.249977111117893"/><bgColor rgb="FF003300"/></patternFill></fill>');
 		$file->write('</fills>');
 		$file->write('<borders count="1"><border diagonalDown="false" diagonalUp="false"><left/><right/><top/><bottom/><diagonal/></border></borders>');
 		$file->write(	'<cellStyleXfs count="20">');
@@ -308,7 +320,7 @@ class XLSXWriter
 		$file->write(		'<xf applyAlignment="false" applyBorder="false" applyFont="true" applyProtection="false" borderId="0" fillId="0" fontId="1" numFmtId="42"/>');
 		$file->write(		'<xf applyAlignment="false" applyBorder="false" applyFont="true" applyProtection="false" borderId="0" fillId="0" fontId="1" numFmtId="9"/>');
 		$file->write(	'</cellStyleXfs>');
-		$file->write(	'<cellXfs count="5">');
+		$file->write(	'<cellXfs count="7">');
 		$file->write(		'<xf applyAlignment="false" applyBorder="false" applyFont="false" applyProtection="false" borderId="0" fillId="0" fontId="0" numFmtId="164" xfId="0"/>');
 		$file->write(		'<xf applyAlignment="false" applyBorder="false" applyFont="false" applyProtection="false" borderId="0" fillId="0" fontId="0" numFmtId="165" xfId="0"/>');
 		$file->write(		'<xf applyAlignment="false" applyBorder="false" applyFont="false" applyProtection="false" borderId="0" fillId="0" fontId="0" numFmtId="166" xfId="0"/>');
