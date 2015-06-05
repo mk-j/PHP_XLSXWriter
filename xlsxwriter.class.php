@@ -144,7 +144,7 @@ class XLSXWriter
 	{
 		$cell_format = str_replace("[RED]", "", $cell_format);
 		if ($cell_format=='GENERAL') return 'string';
-		if ($cell_format=='INTEGER') return 'numeric';
+		if ($cell_format=='0') return 'numeric';
 		if (preg_match("/[H]{1,2}:[M]{1,2}/", $cell_format)) return 'datetime';
 		if (preg_match("/[M]{1,2}:[S]{1,2}/", $cell_format)) return 'datetime';
 		if (preg_match("/[YY]{2,4}/", $cell_format)) return 'date';
@@ -182,7 +182,7 @@ class XLSXWriter
 	{
 		//for backwards compatibility, to handle older versions
 		if      ($cell_format=='string')   $cell_format='GENERAL';
-		else if ($cell_format=='integer')  $cell_format='INTEGER';
+		else if ($cell_format=='integer')  $cell_format='0';
 		else if ($cell_format=='date')     $cell_format='YYYY-MM-DD';
 		else if ($cell_format=='datetime') $cell_format='YYYY-MM-DD HH:MM:SS';
 		else if ($cell_format=='dollar')   $cell_format='[$$-1009]#,##0.00;[RED]-[$$-1009]#,##0.00';
