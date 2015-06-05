@@ -182,6 +182,7 @@ class XLSXWriter
 	{
 		//for backwards compatibility, to handle older versions
 		if      ($cell_format=='string')   $cell_format='GENERAL';
+		else if ($cell_format=='integer')  $cell_format='INTEGER';
 		else if ($cell_format=='date')     $cell_format='YYYY-MM-DD';
 		else if ($cell_format=='datetime') $cell_format='YYYY-MM-DD HH:MM:SS';
 		else if ($cell_format=='dollar')   $cell_format='[$$-1009]#,##0.00;[RED]-[$$-1009]#,##0.00';
