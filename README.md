@@ -44,18 +44,20 @@ $writer->writeSheet($data2);
 echo $writer->writeToString();
 ```
 
-Cell Formatting:
+Simple/Advanced Cell Formats:
 ```php
+//simple formats: date, datetime, integer, dollar, euro, string
 $header = array(
-  'create_date'=>'date',
-  'quantity'=>'string',
-  'product_id'=>'string',
-  'amount'=>'money',
+  'created'=>'date',
+  'product_id'=>'integer',
+  'quantity'=>'#,##0',
+  'amount'=>'dollar',
   'description'=>'string',
+  'tax'=>'[$$-1009]#,##0.00;[RED]-[$$-1009]#,##0.00',
 );
 $data = array(
-    array('2013-01-01',1,27,'44.00','twig'),
-    array('2013-01-05',1,'=C1','-44.00','refund'),
+    array('2015-01-01',873,1,'44.00','apple','=D1*0.05'),
+    array('2015-01-12',324,2,'88.00','grape','=D2*0.05'),
 );
 
 $writer = new XLSXWriter();
