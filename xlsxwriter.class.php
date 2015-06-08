@@ -216,7 +216,7 @@ class XLSXWriter
 		$output .= implode("\n", array_map(function($array) {
 			return implode(';', $array);
 		}, $data));
-		return print_r($output);
+		return $output;
 	}
 
 	public function writeSheet(array $data, $sheet_name='', array $header_types=array() )
