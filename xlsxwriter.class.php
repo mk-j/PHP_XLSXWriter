@@ -20,6 +20,9 @@ class XLSXWriter
 	protected $cell_formats = array();//contains excel format like YYYY-MM-DD HH:MM:SS
 	protected $cell_types = array();//contains friendly format like datetime
 
+        protected $font = 'Arial';
+        protected $font_size = '10';
+
 	protected $current_sheet = '';
 
 	public function __construct()
@@ -105,6 +108,16 @@ class XLSXWriter
 		$zip->addFromString("xl/_rels/workbook.xml.rels", self::buildWorkbookRelsXML() );
 		$zip->close();
 	}
+
+        public function setFont($font)
+        {
+            $this->font = $font;
+        }
+
+        public function setFontSize($font_size)
+        {
+            $this->font_size = $font_size;
+        }
 
 	protected function initializeSheet($sheet_name)
 	{
@@ -337,10 +350,10 @@ class XLSXWriter
 		//$file->write(		'<numFmt formatCode="YYYY-MM-DD" numFmtId="167"/>');
 		$file->write('</numFmts>');
 		$file->write('<fonts count="4">');
-		$file->write(		'<font><name val="Arial"/><charset val="1"/><family val="2"/><sz val="10"/></font>');
-		$file->write(		'<font><name val="Arial"/><family val="0"/><sz val="10"/></font>');
-		$file->write(		'<font><name val="Arial"/><family val="0"/><sz val="10"/></font>');
-		$file->write(		'<font><name val="Arial"/><family val="0"/><sz val="10"/></font>');
+		$file->write(		'<font><name val="' . $this->font .'"/><charset val="1"/><family val="2"/><sz val="' . $this->font_size .'"/></font>');
+		$file->write(		'<font><name val="' . $this->font .'"/><family val="0"/><sz val="' . $this->font_size .'"/></font>');
+		$file->write(		'<font><name val="' . $this->font .'"/><family val="0"/><sz val="' . $this->font_size .'"/></font>');
+		$file->write(		'<font><name val="' . $this->font .'"/><family val="0"/><sz val="' . $this->font_size .'"/></font>');
 		$file->write('</fonts>');
 		$file->write('<fills count="2"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill></fills>');
 		$file->write('<borders count="1"><border diagonalDown="false" diagonalUp="false"><left/><right/><top/><bottom/><diagonal/></border></borders>');
