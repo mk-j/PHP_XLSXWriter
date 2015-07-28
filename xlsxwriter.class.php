@@ -211,7 +211,7 @@ class XLSXWriter
 		return $position;
 	}
 
-	public function writeSheetHeader($sheet_name, array $header_types)
+	public function writeSheetHeader($sheet_name, array $header_types, $suppress_row = false)
 	{
 		if (empty($sheet_name) || empty($header_types) || !empty($this->sheets[$sheet_name]))
 			return;
@@ -223,14 +223,17 @@ class XLSXWriter
 		{
 			$sheet->columns[] = $this->addCellFormat($v);
 		}
-		$header_row = array_keys($header_types);
+        if (!$suppress_row)
+        {
+			$header_row = array_keys($header_types);
 
-		$sheet->file_writer->write('<row collapsed="false" customFormat="false" customHeight="false" hidden="false" ht="12.1" outlineLevel="0" r="' . (1) . '">');
-		foreach ($header_row as $k => $v) {
-			$this->writeCell($sheet->file_writer, 0, $k, $v, $cell_format_index = '0');//'0'=>'string'
+			$sheet->file_writer->write('<row collapsed="false" customFormat="false" customHeight="false" hidden="false" ht="12.1" outlineLevel="0" r="' . (1) . '">');
+			foreach ($header_row as $k => $v) {
+				$this->writeCell($sheet->file_writer, 0, $k, $v, $cell_format_index = '0');//'0'=>'string'
+			}
+			$sheet->file_writer->write('</row>');
+			$sheet->row_count++;
 		}
-		$sheet->file_writer->write('</row>');
-		$sheet->row_count++;
 		$this->current_sheet = $sheet_name;
 	}
 
@@ -247,9 +250,10 @@ class XLSXWriter
 		}
 
 		$sheet->file_writer->write('<row collapsed="false" customFormat="false" customHeight="false" hidden="false" ht="12.1" outlineLevel="0" r="' . ($sheet->row_count + 1) . '">');
-		//$row = array_slice($row, 0, count($sheet->columns) );
+		$column_count=0;
 		foreach ($row as $k => $v) {
-			$this->writeCell($sheet->file_writer, $sheet->row_count, $k, $v, $sheet->columns[$k]);
+			$this->writeCell($sheet->file_writer, $sheet->row_count, $column_count, $v, $sheet->columns[$column_count]);
+			$column_count++;
 		}
 		$sheet->file_writer->write('</row>');
 		$sheet->row_count++;
@@ -265,7 +269,7 @@ class XLSXWriter
 
 		$sheet->file_writer->write(    '</sheetData>');
 
-		if (count($sheet->merge_cells)) {
+		if (!empty($sheet->merge_cells)) {
 			$sheet->file_writer->write(    '<mergeCells>');
 			foreach ($sheet->merge_cells as $range) {
 				$sheet->file_writer->write(        '<mergeCell ref="' . $range . '"/>');
@@ -290,26 +294,21 @@ class XLSXWriter
 		$sheet->file_writer->close();
 		$sheet->finalized=true;
 	}
-
-	protected function setMergeCells($sheet_name, array $merge_cells)
+	
+	public function markMergedCell($sheet_name, $start_cell_row, $start_cell_column, $end_cell_row, $end_cell_column)
 	{
 		if (empty($sheet_name) || $this->sheets[$sheet_name]->finalized)
 			return;
 
 		self::initializeSheet($sheet_name);
 		$sheet = &$this->sheets[$sheet_name];
-		foreach ($merge_cells as $v) {
-			if (!is_array($v) || count($v) !== 2 || count($v[0]) !== 2 || count($v[1]) !== 2) {
-				continue;
-			}
-			$startCell = self::xlsCell($v[0][0], $v[0][1]);
-			$endCell = self::xlsCell($v[1][0], $v[1][1]);
 
-			$sheet->merge_cells[] = $startCell . ":" . $endCell;
-		}
+		$startCell = self::xlsCell($start_cell_row, $start_cell_column);
+		$endCell = self::xlsCell($end_cell_row, $end_cell_column);
+		$sheet->merge_cells[] = $startCell . ":" . $endCell;
 	}
 
-	public function writeSheet(array $data, $sheet_name='', array $header_types=array(), array $merge_cells=array() )
+	public function writeSheet(array $data, $sheet_name='', array $header_types=array())
 	{
 		$sheet_name = empty($sheet_name) ? 'Sheet1' : $sheet_name;
 		$data = empty($data) ? array(array('')) : $data;
@@ -320,10 +319,6 @@ class XLSXWriter
 		foreach($data as $i=>$row)
 		{
 			$this->writeSheetRow($sheet_name, $row);
-		}
-		if (!empty($merge_cells))
-		{
-			$this->setMergeCells($sheet_name, $merge_cells);
 		}
 		$this->finalizeSheet($sheet_name);
 	}
