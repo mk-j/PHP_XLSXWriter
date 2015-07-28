@@ -121,6 +121,7 @@ class XLSXWriter
 			'row_count' => 0,
 			'file_writer' => new XLSXWriter_BuffererWriter($sheet_filename),
 			'columns' => array(),
+			'merge_cells' => array(),
 			'max_cell_tag_start' => 0,
 			'max_cell_tag_end' => 0,
 			'finalized' => false,
@@ -162,7 +163,7 @@ class XLSXWriter
 		if (preg_match("/0/", $cell_format)) return 'numeric';
 		return 'string';
 	}
-	
+
 	private function escapeCellFormat($cell_format)
 	{
 		$ignore_until='';
@@ -210,7 +211,7 @@ class XLSXWriter
 		return $position;
 	}
 
-	public function writeSheetHeader($sheet_name, array $header_types)
+	public function writeSheetHeader($sheet_name, array $header_types, $suppress_row = false)
 	{
 		if (empty($sheet_name) || empty($header_types) || !empty($this->sheets[$sheet_name]))
 			return;
@@ -222,14 +223,17 @@ class XLSXWriter
 		{
 			$sheet->columns[] = $this->addCellFormat($v);
 		}
-		$header_row = array_keys($header_types);
+        if (!$suppress_row)
+        {
+			$header_row = array_keys($header_types);
 
-		$sheet->file_writer->write('<row collapsed="false" customFormat="false" customHeight="false" hidden="false" ht="12.1" outlineLevel="0" r="' . (1) . '">');
-		foreach ($header_row as $k => $v) {
-			$this->writeCell($sheet->file_writer, 0, $k, $v, $cell_format_index = '0');//'0'=>'string'
+			$sheet->file_writer->write('<row collapsed="false" customFormat="false" customHeight="false" hidden="false" ht="12.1" outlineLevel="0" r="' . (1) . '">');
+			foreach ($header_row as $k => $v) {
+				$this->writeCell($sheet->file_writer, 0, $k, $v, $cell_format_index = '0');//'0'=>'string'
+			}
+			$sheet->file_writer->write('</row>');
+			$sheet->row_count++;
 		}
-		$sheet->file_writer->write('</row>');
-		$sheet->row_count++;
 		$this->current_sheet = $sheet_name;
 	}
 
@@ -246,9 +250,10 @@ class XLSXWriter
 		}
 
 		$sheet->file_writer->write('<row collapsed="false" customFormat="false" customHeight="false" hidden="false" ht="12.1" outlineLevel="0" r="' . ($sheet->row_count + 1) . '">');
-		//$row = array_slice($row, 0, count($sheet->columns) );
+		$column_count=0;
 		foreach ($row as $k => $v) {
-			$this->writeCell($sheet->file_writer, $sheet->row_count, $k, $v, $sheet->columns[$k]);
+			$this->writeCell($sheet->file_writer, $sheet->row_count, $column_count, $v, $sheet->columns[$column_count]);
+			$column_count++;
 		}
 		$sheet->file_writer->write('</row>');
 		$sheet->row_count++;
@@ -263,6 +268,15 @@ class XLSXWriter
 		$sheet = &$this->sheets[$sheet_name];
 
 		$sheet->file_writer->write(    '</sheetData>');
+
+		if (!empty($sheet->merge_cells)) {
+			$sheet->file_writer->write(    '<mergeCells>');
+			foreach ($sheet->merge_cells as $range) {
+				$sheet->file_writer->write(        '<mergeCell ref="' . $range . '"/>');
+			}
+			$sheet->file_writer->write(    '</mergeCells>');
+		}
+
 		$sheet->file_writer->write(    '<printOptions headings="false" gridLines="false" gridLinesSet="true" horizontalCentered="false" verticalCentered="false"/>');
 		$sheet->file_writer->write(    '<pageMargins left="0.5" right="0.5" top="1.0" bottom="1.0" header="0.5" footer="0.5"/>');
 		$sheet->file_writer->write(    '<pageSetup blackAndWhite="false" cellComments="none" copies="1" draft="false" firstPageNumber="1" fitToHeight="1" fitToWidth="1" horizontalDpi="300" orientation="portrait" pageOrder="downThenOver" paperSize="1" scale="100" useFirstPageNumber="true" usePrinterDefaults="false" verticalDpi="300"/>');
@@ -280,8 +294,21 @@ class XLSXWriter
 		$sheet->file_writer->close();
 		$sheet->finalized=true;
 	}
+	
+	public function markMergedCell($sheet_name, $start_cell_row, $start_cell_column, $end_cell_row, $end_cell_column)
+	{
+		if (empty($sheet_name) || $this->sheets[$sheet_name]->finalized)
+			return;
 
-	public function writeSheet(array $data, $sheet_name='', array $header_types=array() )
+		self::initializeSheet($sheet_name);
+		$sheet = &$this->sheets[$sheet_name];
+
+		$startCell = self::xlsCell($start_cell_row, $start_cell_column);
+		$endCell = self::xlsCell($end_cell_row, $end_cell_column);
+		$sheet->merge_cells[] = $startCell . ":" . $endCell;
+	}
+
+	public function writeSheet(array $data, $sheet_name='', array $header_types=array())
 	{
 		$sheet_name = empty($sheet_name) ? 'Sheet1' : $sheet_name;
 		$data = empty($data) ? array(array('')) : $data;
@@ -300,7 +327,7 @@ class XLSXWriter
 	{
 		$cell_type = $this->cell_types[$cell_format_index];
 		$cell_name = self::xlsCell($row_number, $column_number);
-		
+
 		if (!is_scalar($value) || $value==='') { //objects, array, empty
 			$file->write('<c r="'.$cell_name.'" s="'.$cell_format_index.'"/>');
 		} elseif (is_string($value) && $value{0}=='='){
@@ -311,9 +338,9 @@ class XLSXWriter
 			$file->write('<c r="'.$cell_name.'" s="'.$cell_format_index.'" t="n"><v>'.self::convert_date_time($value).'</v></c>');
 		} elseif ($cell_type=='currency' || $cell_type=='percent' || $cell_type=='numeric') {
 			$file->write('<c r="'.$cell_name.'" s="'.$cell_format_index.'" t="n"><v>'.self::xmlspecialchars($value).'</v></c>');//int,float,currency
-		} else if (!is_string($value)){ 
+		} else if (!is_string($value)){
 			$file->write('<c r="'.$cell_name.'" s="'.$cell_format_index.'" t="n"><v>'.($value*1).'</v></c>');
-		} else if ($value{0}!='0' && $value{0}!='+' && filter_var($value, FILTER_VALIDATE_INT, array('options'=>array('max_range'=>2147483647)))){ 
+		} else if ($value{0}!='0' && $value{0}!='+' && filter_var($value, FILTER_VALIDATE_INT, array('options'=>array('max_range'=>2147483647)))){
 			$file->write('<c r="'.$cell_name.'" s="'.$cell_format_index.'" t="n"><v>'.($value*1).'</v></c>');
 		} else { //implied: ($cell_format=='string')
 			$file->write('<c r="'.$cell_name.'" s="'.$cell_format_index.'" t="s"><v>'.self::xmlspecialchars($this->setSharedString($value)).'</v></c>');
