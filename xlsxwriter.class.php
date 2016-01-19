@@ -9,7 +9,7 @@ class XLSXWriter
 {
 	//------------------------------------------------------------------
 	//http://office.microsoft.com/en-us/excel-help/excel-specifications-and-limits-HP010073849.aspx
-	const EXCEL_2007_MAX_ROW=1048576; 
+	const EXCEL_2007_MAX_ROW=1048576;
 	const EXCEL_2007_MAX_COL=16384;
 	//------------------------------------------------------------------
 	protected $author ='Doc Author';
@@ -72,7 +72,7 @@ class XLSXWriter
 		$zip = new ZipArchive();
 		if (empty($this->sheets))                       { self::log("Error in ".__CLASS__."::".__FUNCTION__.", no worksheets defined."); return; }
 		if (!$zip->open($filename, ZipArchive::CREATE)) { self::log("Error in ".__CLASS__."::".__FUNCTION__.", unable to create zip."); return; }
-		
+
 		$zip->addEmptyDir("docProps/");
 		$zip->addFromString("docProps/app.xml" , self::buildAppXML() );
 		$zip->addFromString("docProps/core.xml", self::buildCoreXML());
@@ -105,8 +105,8 @@ class XLSXWriter
 		$sheet_filename = $this->tempFilename();
 		$sheet_xmlname = 'sheet' . (count($this->sheets) + 1).".xml";
 		$this->sheets[$sheet_name] = (object)array(
-			'filename' => $sheet_filename, 
-			'sheetname' => $sheet_name, 
+			'filename' => $sheet_filename,
+			'sheetname' => $sheet_name,
 			'xmlname' => $sheet_xmlname,
 			'row_count' => 0,
 			'file_writer' => new XLSXWriter_BuffererWriter($sheet_filename),
@@ -180,7 +180,7 @@ class XLSXWriter
 		$sheet->row_count++;
 		$this->current_sheet = $sheet_name;
 	}
-	
+
 	protected function finalizeSheet($sheet_name)
 	{
 		if (empty($sheet_name) || $this->sheets[$sheet_name]->finalized)
@@ -207,14 +207,14 @@ class XLSXWriter
 		$sheet->finalized=true;
 	}
 
-	public function writeCSV(array $data, array $header_types=array() )
+	public function writeCSV(array $data, array $header_types=array(), $delimiter = ';')
 	{
 		$header_text = array_keys($header_types);
 
 		$output = '';
-		$output .= implode(';', $header_text) . "\n";
+		$output .= implode($delimiter, $header_text) . "\n";
 		$output .= implode("\n", array_map(function($array) {
-			return implode(';', $array);
+			return implode($delimiter, $array);
 		}, $data));
 		return $output;
 	}
@@ -237,13 +237,13 @@ class XLSXWriter
 	protected function writeCell(XLSXWriter_BuffererWriter &$file, $row_number, $column_number, $value, $cell_format)
 	{
 		static $styles = array(
-			'money' => 1, 
-			'dollar' => 1, 
-			'datetime' => 2, 
-			'date' => 3, 
-			'string' => 0, 
-			'number.2' => 4, 
-			'number.4' => 5, 
+			'money' => 1,
+			'dollar' => 1,
+			'datetime' => 2,
+			'date' => 3,
+			'string' => 0,
+			'number.2' => 4,
+			'number.4' => 5,
 			'blackheader' => 6
 		);
 		$cell = self::xlsCell($row_number, $column_number);
@@ -369,7 +369,7 @@ class XLSXWriter
 		}
 		$file->write('</sst>');
 		$file->close();
-		
+
 		return $temporary_filename;
 	}
 
@@ -524,7 +524,7 @@ class XLSXWriter
 		}
 
 		//using 1900 as epoch, not 1904, ignoring 1904 special case
-		
+
 		# Special cases for Excel.
 		if ("$year-$month-$day"=='1899-12-31')  return $seconds      ;    # Excel 1900 epoch
 		if ("$year-$month-$day"=='1900-01-00')  return $seconds      ;    # Excel 1900 epoch
@@ -609,11 +609,11 @@ class XLSXWriter_BuffererWriter
 		}
 	}
 
-	public function __destruct() 
+	public function __destruct()
 	{
 		$this->close();
 	}
-	
+
 	public function ftell()
 	{
 		if ($this->fd) {
