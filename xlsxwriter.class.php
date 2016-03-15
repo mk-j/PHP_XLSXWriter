@@ -213,7 +213,7 @@ class XLSXWriter
 
 		$output = '';
 		$output .= implode($delimiter, $header_text) . "\n";
-		$output .= implode("\n", array_map(function($array) {
+		$output .= implode("\n", array_map(function($array) use (&$delimiter) {
 			return implode($delimiter, $array);
 		}, $data));
 		return $output;
