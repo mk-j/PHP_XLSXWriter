@@ -219,6 +219,18 @@ class XLSXWriter
 		return $output;
 	}
 
+	public function writeCSVLine(array $data, $type = null, $delimiter = ';') {
+		if (!empty($type)) {
+			$text = array_keys($data);
+		} else {
+			$text = $data;
+		}
+
+		$output = '';
+		$output .= implode($delimiter, $text) . "\n";
+		return $output;
+	}
+
 	public function writeSheet(array $data, $sheet_name='', array $header_types=array() )
 	{
 		$sheet_name = empty($sheet_name) ? 'Sheet1' : $sheet_name;
