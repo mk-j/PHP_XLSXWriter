@@ -233,7 +233,7 @@ class XLSXWriter
 
 		$output = '';
 		$output .= implode($delimiter, $text) . "\n";
-		return $output;
+		echo $output;
 	}
 
 	public function writeSheet(array $data, $sheet_name='', array $header_types=array() )
