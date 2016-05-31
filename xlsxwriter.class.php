@@ -137,12 +137,12 @@ class XLSXWriter
 		$sheet->file_writer->write(  '<sheetData>');
 	}
 
-	public function writeSheetHeader($sheet_name, array $header_types, $format = 'xlsx') {
+	public function writeSheetHeader($sheet_name, array $header_types, $format = 'xlsx', $delimiter = ';') {
 		if (empty($sheet_name) || empty($header_types) || !empty($this->sheets[$sheet_name])) {
 			return;
 		}
 		if ($format == 'csv') {
-			$this->writeCSVLine($header_types, true);
+			$this->writeCSVLine($header_types, true, $delimiter);
 		}
 
 		self::initializeSheet($sheet_name);
@@ -159,12 +159,12 @@ class XLSXWriter
 		$this->current_sheet = $sheet_name;
 	}
 
-	public function writeSheetRow($sheet_name, array $row, $format = 'xlsx') {
+	public function writeSheetRow($sheet_name, array $row, $format = 'xlsx', $delimiter = ';') {
 		if (empty($sheet_name) || empty($row)) {
 			return;
 		}
 		if ($format == 'csv') {
-			$this->writeCSVLine($row);
+			$this->writeCSVLine($row, NULL, $delimiter);
 		}
 
 		self::initializeSheet($sheet_name);
