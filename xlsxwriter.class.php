@@ -164,7 +164,7 @@ class XLSXWriter
 			return;
 		}
 		if ($format == 'csv') {
-			$this->writeCSVLine($row, false, $delimiter);
+			$this->writeCSVLine($row, NULL, $delimiter);
 		}
 
 		self::initializeSheet($sheet_name);
