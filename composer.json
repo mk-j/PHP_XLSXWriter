@@ -13,8 +13,8 @@
         "phpunit/phpunit": "4.3.*"
     }
     "require": {
-        "xrstf/composer-php52": "1.*" //PHP 5.2 Autoloading for Composer
-        "php": ">=5.2.*" // Min version PHP
+        "xrstf/composer-php52": "1.*",
+        "php": ">=5.2.*"
     },
     "scripts": {
         "post-install-cmd": [
