@@ -119,7 +119,7 @@ class XLSXWriter
 	
 	protected function insertHyperlinks($sheet_name, $hyperlinks)
     {
-		$sheet = $this->sheets[$sheetname];
+		$sheet = $this->sheets[$sheet_name];
 		
         $sheet->relfile_writer->write('<?xml version="1.0" encoding="UTF-8"?>' . "\n");
 		$sheet->relfile_writer->write('<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">');
