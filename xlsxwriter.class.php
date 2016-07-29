@@ -19,7 +19,29 @@ class XLSXWriter
 	protected $temp_files = array();
 	protected $cell_formats = array();//contains excel format like YYYY-MM-DD HH:MM:SS
 	protected $cell_types = array();//contains friendly format like datetime
-
+    protected $defaultFontName = 'Calibri';
+	protected $defaultFontSize = 11;
+	protected $defaultWrapText = false;
+	protected $defaultVerticalAlign = 'top';
+	protected $defaultHorizontalAlign = 'left';
+	protected $defaultStartRow = 0;
+	protected $defaultStartCol = 0;
+	protected $defaultStyle = array();
+	protected $fontsCount = 1; //1 font must be in structure
+	protected $fontSize = 8;
+	protected $fontColor = '';
+	protected $fontStyles = '';
+	protected $fontName = '';
+	protected $fontId = 0; //font counting from index - 0, means 0,1 - 2 elements
+	protected $bordersCount = 1; //1 border must be in structure
+	protected $bordersStyle = '';
+	protected $bordersColor = '';
+	protected $borderId = 0; //borders counting from index - 0, means 0,1 - 2 elements
+	protected $fillsCount = 2; //2 fills must be in structure
+	protected $fillColor = '';
+	protected $fillId = 1; //fill counting from index - 0, means 0,1 - 2 elements
+	protected $stylesCount = 1;//1 style must be in structure
+	protected $sheets_meta = array();
 	protected $current_sheet = '';
 	protected $temp_dir = NULL;
 
@@ -33,6 +55,15 @@ class XLSXWriter
 		$this->addCellFormat($cell_format='GENERAL');
 	}
 
+    public function setFontName($defaultFontName) { $this->defaultFontName=$defaultFontName; }
+	public function setFontSize($defaultFontSize) { $this->defaultFontSize=$defaultFontSize; }
+	public function setWrapText($defaultWrapText) { $this->defaultWrapText=$defaultWrapText; }
+	public function setVerticalAlign($defaultVerticalAlign) { $this->defaultVerticalAlign=$defaultVerticalAlign; }
+	public function setHorizontalAlign($defaultHorizontalAlign) { $this->defaultHorizontalAlign=$defaultHorizontalAlign; }
+	private function setStyle($defaultStyle) { $this->defaultStyle=$defaultStyle; }
+	public function setStartRow($defaultStartRow) { $this->defaultStartRow=($defaultStartRow > 0) ? ((int)$defaultStartRow - 1) : 0; }
+	public function setStartCol($defaultStartCol) { $this->defaultStartCol=($defaultStartCol > 0) ? ((int)$defaultStartCol - 1) : 0; }
+
 	public function setAuthor($author='') { $this->author=$author; }
 
 	public function __destruct()
@@ -43,17 +74,15 @@ class XLSXWriter
 			}
 		}
 	}
-	
+
 	public function setTempDir($dir)
 	{
 		$this->temp_dir = $dir;
 	}
-	
+
 	protected function tempFilename()
 	{
-		$temp_dir = is_null($this->temp_dir) ? sys_get_temp_dir() : $this->temp_dir;
-		$filename = tempnam($temp_dir, "xlsx_writer_");
-		$this->temp_files[] = $filename;
+        $filename = tempnam("/tmp", "xlsx_writer_");
 		return $filename;
 	}
 
@@ -100,6 +129,9 @@ class XLSXWriter
 		$zip->addEmptyDir("xl/worksheets/");
 		foreach($this->sheets as $sheet) {
 			$zip->addFile($sheet->filename, "xl/worksheets/".$sheet->xmlname );
+            // adding hyperlinks
+            $zip->addEmptyDir("xl/worksheets/_rels/");
+            $zip->addFile( $sheet->rel_filename, "xl/worksheets/_rels/".$sheet->xmlname.".rels" );
 		}
 		if (!empty($this->shared_strings)) {
 			$zip->addFile($this->writeSharedStringsXML(), "xl/sharedStrings.xml" );  //$zip->addFromString("xl/sharedStrings.xml",     self::buildSharedStringsXML() );
@@ -120,13 +152,16 @@ class XLSXWriter
 			return;
 
 		$sheet_filename = $this->tempFilename();
+        $sheet_relfilename = $this->tempFilename();
 		$sheet_xmlname = 'sheet' . (count($this->sheets) + 1).".xml";
 		$this->sheets[$sheet_name] = (object)array(
 			'filename' => $sheet_filename,
 			'sheetname' => $sheet_name,
 			'xmlname' => $sheet_xmlname,
+            'rel_filename' => $sheet_relfilename,
 			'row_count' => 0,
 			'file_writer' => new XLSXWriter_BuffererWriter($sheet_filename),
+            'rel_file_writer' => new XLSXWriter_BuffererWriter($sheet_relfilename),
 			'columns' => array(),
 			'merge_cells' => array(),
 			'max_cell_tag_start' => 0,
@@ -192,6 +227,28 @@ class XLSXWriter
 		return $escaped;
 		//return str_replace( array(" ","-", "(", ")"), array("\ ","\-", "\(", "\)"), $cell_format);//TODO, needs more escaping
 	}
+
+    public function insertHyperlinks( $sheet_name, $hyperlinks )
+    {
+        $sheet = &$this->sheets[$sheet_name];
+        $sheet->rel_file_writer->write('<?xml version="1.0" encoding="UTF-8"?>' . "\n");
+		$sheet->rel_file_writer->write('<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">');
+
+        $sheet->file_writer->write('<hyperlinks>');
+
+        $count = 1;
+        foreach( $hyperlinks as $columnId => $linkData ){
+            $sheet->file_writer->write('<hyperlink ref="'.$columnId.'" r:id="rId'.$count.'" display="'.$linkData['name'].'"></hyperlink>');
+
+            $sheet->rel_file_writer->write('<Relationship Id="rId'.$count.'" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/hyperlink" Target="'.$linkData['link'].'" TargetMode="External" />');
+
+            $count++;
+
+        }
+
+        $sheet->file_writer->write('</hyperlinks>');
+        $sheet->rel_file_writer->write('</Relationships>');
+    }
 
 	private function addCellFormat($cell_format)
 	{
@@ -301,7 +358,7 @@ class XLSXWriter
 		$sheet->file_writer->close();
 		$sheet->finalized=true;
 	}
-	
+
 	public function markMergedCell($sheet_name, $start_cell_row, $start_cell_column, $end_cell_row, $end_cell_column)
 	{
 		if (empty($sheet_name) || $this->sheets[$sheet_name]->finalized)
@@ -315,7 +372,7 @@ class XLSXWriter
 		$sheet->merge_cells[] = $startCell . ":" . $endCell;
 	}
 
-	public function writeSheet(array $data, $sheet_name='', array $header_types=array())
+	public function writeSheet(array $data, $sheet_name='', array $header_types=array(), array $hyperlinks = array())
 	{
 		$sheet_name = empty($sheet_name) ? 'Sheet1' : $sheet_name;
 		$data = empty($data) ? array(array('')) : $data;
@@ -327,6 +384,7 @@ class XLSXWriter
 		{
 			$this->writeSheetRow($sheet_name, $row);
 		}
+        $this->insertHyperlinks($sheet_name, $hyperlinks);
 		$this->finalizeSheet($sheet_name);
 	}
 
