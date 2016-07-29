@@ -34,10 +34,10 @@ $hyperlinks = array(
 );
 $writer = new XLSXWriter();
 $writer->setAuthor('Some Author');
-$writer->writeSheet($data1,'Sheet1',$header);
+$writer->writeSheet($data1,'Sheet1',$header, $hyperlinks);
 $writer->writeSheet($data2,'Sheet2');
-$writer->writeToStdOut();
-//$writer->writeToFile('example.xlsx');
+#$writer->writeToStdOut();
+$writer->writeToFile('example.xlsx');
 //echo $writer->writeToString();
 exit(0);
 

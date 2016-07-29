@@ -103,7 +103,7 @@ class XLSXWriter
 			
 			// adding relationships for worksheets
             $zip->addEmptyDir("xl/worksheets/_rels/");
-            $zip->addFile($sheet_meta['rel_filename'], "xl/worksheets/_rels/".$sheet_meta['xmlname'].".rels" );
+            $zip->addFile($sheet->rel_filename, "xl/worksheets/_rels/".$sheet->xmlname.".rels" );
 		}
 		if (!empty($this->shared_strings)) {
 			$zip->addFile($this->writeSharedStringsXML(), "xl/sharedStrings.xml" );  //$zip->addFromString("xl/sharedStrings.xml",     self::buildSharedStringsXML() );
@@ -119,12 +119,12 @@ class XLSXWriter
 	
 	protected function insertHyperlinks($sheet_name, $hyperlinks)
     {
-		$sheet = $this->sheets[$sheet_name];
+		$sheet = &$this->sheets[$sheet_name];
 		
         $sheet->relfile_writer->write('<?xml version="1.0" encoding="UTF-8"?>' . "\n");
 		$sheet->relfile_writer->write('<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">');
 
-        fwrite($fd, '<hyperlinks>');
+        $sheet->file_writer->write('<hyperlinks>');
 
         $count = 1;
         foreach( $hyperlinks as $columnId => $linkData ){
@@ -133,11 +133,11 @@ class XLSXWriter
             $sheet->relfile_writer->write('<Relationship Id="rId'.$count.'" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/hyperlink" Target="'.self::xmlspecialchars($linkData["link"]).'" TargetMode="External" />');
 
             $count++;
-
         }
 
         $sheet->file_writer->write('</hyperlinks>');
         $sheet->relfile_writer->write('</Relationships>');
+		$sheet->relfile_writer->close();
     }
 
 	
