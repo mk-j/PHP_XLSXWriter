@@ -14,7 +14,7 @@
     },
     "require": {
         "xrstf/composer-php52": "1.*",
-        "php": ">=5.2.*"
+        "php": ">=5.2.1"
     },
     "scripts": {
         "post-install-cmd": [
