@@ -369,10 +369,14 @@ class XLSXWriter
 		$this->finalizeSheet($sheet_name);
 	}
 
-	protected function writeCell(XLSXWriter_BuffererWriter &$file, $row_number, $column_number, $value, $cell_type_index, $cell_style)
+	protected function writeCell(XLSXWriter_BuffererWriter &$file, $row_number, $column_number, $value, $cell_type_index, $cell_style = NULL)
 	{
 		$cell_type = $this->cell_types[$cell_type_index];
 		$cell_name = self::xlsCell($row_number, $column_number);
+
+		if(!isset($cell_style)) {
+			$cell_style = $cell_type_index;
+		}
 
 		if (!is_scalar($value) || $value==='') { //objects, array, empty
 			$file->write('<c r="'.$cell_name.'" s="'.$cell_style.'"/>');
