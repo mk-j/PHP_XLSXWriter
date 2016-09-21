@@ -43,12 +43,12 @@ class XLSXWriter
 			}
 		}
 	}
-	
+
 	public function setTempDir($dir)
 	{
 		$this->temp_dir = $dir;
 	}
-	
+
 	protected function tempFilename()
 	{
 		$temp_dir = is_null($this->temp_dir) ? sys_get_temp_dir() : $this->temp_dir;
@@ -301,7 +301,7 @@ class XLSXWriter
 		$sheet->file_writer->close();
 		$sheet->finalized=true;
 	}
-	
+
 	public function markMergedCell($sheet_name, $start_cell_row, $start_cell_column, $end_cell_row, $end_cell_column)
 	{
 		if (empty($sheet_name) || $this->sheets[$sheet_name]->finalized)
@@ -582,6 +582,7 @@ class XLSXWriter
 	//------------------------------------------------------------------
 	public static function xmlspecialchars($val)
 	{
+        $val=preg_replace('/[\x00-\x08\x0B\x0C\x0E-\x1F\x80-\x9F]/u', '', $val);
 		return str_replace("'", "&#39;", htmlspecialchars($val));
 	}
 	//------------------------------------------------------------------
