@@ -1,4 +1,5 @@
 <?php
+set_include_path( get_include_path().PATH_SEPARATOR."..");
 include_once("xlsxwriter.class.php");
 
 file_put_contents("php://stderr", "Writing to example-cli-colors.xlsx\n");
@@ -16,7 +17,7 @@ foreach($colors as $b) {
 		$writer->writeSheetRow('Sheet1', $rowdata, $rowstyle );
 	}
 }
-$writer->writeToFile('example-cli-colors.xlsx');
+$writer->writeToFile('xlsx-colors.xlsx');
 echo '#'.floor((memory_get_peak_usage())/1024/1024)."MB"."\n";
 
 
