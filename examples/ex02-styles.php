@@ -1,4 +1,5 @@
 <?php
+set_include_path( get_include_path().PATH_SEPARATOR."..");
 include_once("xlsxwriter.class.php");
 
 file_put_contents("php://stderr", "Writing to example-cli-styles.xlsx\n");
@@ -25,7 +26,7 @@ $writer->writeSheetRow('Sheet1', $rowdata = array(300,234,456,789), $styles6 );
 $writer->writeSheetRow('Sheet1', $rowdata = array(300,234,456,789), $styles7 );
 $writer->writeSheetRow('Sheet1', $rowdata = array(300,234,456,789), $styles8 );
 $writer->writeSheetRow('Sheet1', $rowdata = array(300,234,456,789), $styles9 );
-$writer->writeToFile('example-cli-styles.xlsx');
+$writer->writeToFile('xlsx-styles.xlsx');
 echo '#'.floor((memory_get_peak_usage())/1024/1024)."MB"."\n";
 
 
