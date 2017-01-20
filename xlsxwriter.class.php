@@ -18,6 +18,7 @@ class XLSXWriter
 	protected $sheets = array();
 	protected $shared_strings = array();//unique set
 	protected $shared_string_count = 0;//count of non-unique references to the unique set
+	protected $shared_strings_enabled = false;
 	protected $temp_files = array();
 	protected $cell_styles = array();
 	protected $number_formats = array();
@@ -39,6 +40,7 @@ class XLSXWriter
 
 	public function setAuthor($author='') { $this->author=$author; }
 	public function setTempDir($tempdir='') { $this->tempdir=$tempdir; }
+	public function useSharedStrings() { $this->shared_strings_enabled=true; }
 
 	public function __destruct()
 	{
@@ -170,6 +172,7 @@ class XLSXWriter
 		{
 			$number_format = self::numberFormatStandardized($v);
 			$number_format_type = self::determineNumberFormatType($number_format);
+			if ($this->shared_strings_enabled && $number_format_type=="n_string") { $number_format_type="n_sharedstring"; }
 			$cell_style_idx = $this->addCellStyle($number_format, $style_string=null);
 			$column_types[] = array('number_format' => $number_format,//contains excel format like 'YYYY-MM-DD HH:MM:SS'
 									'number_format_type' => $number_format_type, //contains friendly format like 'datetime'
@@ -187,14 +190,14 @@ class XLSXWriter
 		self::initializeSheet($sheet_name);
 		$sheet = &$this->sheets[$sheet_name];
 		$sheet->columns = $this->initializeColumnTypes($header_types);
-        if (!$suppress_row)
-        {
+		if (!$suppress_row)
+		{
 			$header_row = array_keys($header_types);
 
 			$sheet->file_writer->write('<row collapsed="false" customFormat="false" customHeight="false" hidden="false" ht="12.1" outlineLevel="0" r="' . (1) . '">');
 			foreach ($header_row as $c => $v) {
 				$cell_style_idx = $this->addCellStyle( 'GENERAL', $style_string=null );
-				$this->writeCell($sheet->file_writer, 0, $c, $v, $number_format_type='string', $cell_style_idx);
+				$this->writeCell($sheet->file_writer, 0, $c, $v, $number_format_type='n_string', $cell_style_idx);
 			}
 			$sheet->file_writer->write('</row>');
 			$sheet->row_count++;
@@ -211,7 +214,7 @@ class XLSXWriter
 		$sheet = &$this->sheets[$sheet_name];
 		if (empty($sheet->columns))
 		{
-			$sheet->columns = $this->initializeColumnTypes( array_fill($from=0, $until=count($row), 'GENERAL') );
+			$sheet->columns = $this->initializeColumnTypes( self::autoDetectColumnTypes($row) );
 		}
 
 		$sheet->file_writer->write('<row collapsed="false" customFormat="false" customHeight="false" hidden="false" ht="12.1" outlineLevel="0" r="' . ($sheet->row_count + 1) . '">');
@@ -299,21 +302,21 @@ class XLSXWriter
 			$file->write('<c r="'.$cell_name.'" s="'.$cell_style_idx.'"/>');
 		} elseif (is_string($value) && $value{0}=='='){
 			$file->write('<c r="'.$cell_name.'" s="'.$cell_style_idx.'" t="s"><f>'.self::xmlspecialchars($value).'</f></c>');
-		} elseif ($num_format_type=='date') {
+		} elseif ($num_format_type=='n_date') {
 			$file->write('<c r="'.$cell_name.'" s="'.$cell_style_idx.'" t="n"><v>'.intval(self::convert_date_time($value)).'</v></c>');
-		} elseif ($num_format_type=='datetime') {
+		} elseif ($num_format_type=='n_datetime') {
 			$file->write('<c r="'.$cell_name.'" s="'.$cell_style_idx.'" t="n"><v>'.self::convert_date_time($value).'</v></c>');
-		} elseif ($num_format_type=='currency' || $num_format_type=='percent' || $num_format_type=='numeric') {
+		} elseif ($num_format_type=='n_numeric') {
 			$file->write('<c r="'.$cell_name.'" s="'.$cell_style_idx.'" t="n"><v>'.self::xmlspecialchars($value).'</v></c>');//int,float,currency
-		} else if (!is_string($value)){
-			$file->write('<c r="'.$cell_name.'" s="'.$cell_style_idx.'" t="n"><v>'.($value*1).'</v></c>');
-		} else if ($value{0}!='0' && $value{0}!='+' && filter_var($value, FILTER_VALIDATE_INT, array('options'=>array('max_range'=>2147483647)))){
-			$file->write('<c r="'.$cell_name.'" s="'.$cell_style_idx.'" t="n"><v>'.($value*1).'</v></c>');
-		} else { //implied: ($num_format_type=='string')
+		} elseif ($num_format_type=='n_string') {
+			$file->write('<c r="'.$cell_name.'" s="'.$cell_style_idx.'" t="inlineStr"><is><t>'.self::xmlspecialchars($value).'</t></is></c>');
+		} elseif ($num_format_type=='n_sharedstring') {
 			$file->write('<c r="'.$cell_name.'" s="'.$cell_style_idx.'" t="s"><v>'.self::xmlspecialchars($this->setSharedString($value)).'</v></c>');
+		} else { //if ($num_format_type=='n_string') {
+			trigger_error("Unknown column type: ".$num_format_type, E_USER_ERROR);
 		}
-	}//
-	
+	}
+
 	protected function styleFontIndexes()
 	{
 		static $border_allowed = array('left','right','top','bottom');
@@ -674,7 +677,10 @@ class XLSXWriter
 	//------------------------------------------------------------------
 	public static function xmlspecialchars($val)
 	{
-		return str_replace("'", "&#39;", htmlspecialchars($val));
+		//note, badchars includes \t\n\r \x09\x0a\x0d
+		static $badchars = "\x00\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0a\x0b\x0c\x0d\x0e\x0f\x10\x11\x12\x13\x14\x15\x16\x17\x18\x19\x1a\x1b\x1c\x1d\x1e\x1f\x7f";
+		static $goodchars = "                                 ";
+		return strtr(htmlspecialchars($val, ENT_QUOTES | ENT_XML1), $badchars, $goodchars);//strtr appears to be faster than str_replace
 	}
 	//------------------------------------------------------------------
 	public static function array_first_key(array $arr)
@@ -684,35 +690,57 @@ class XLSXWriter
 		return $first_key;
 	}
 	//------------------------------------------------------------------
+	private static function autoDetectColumnTypes($row)
+	{
+		//return array_fill($from=0, $until=count($row), 'GENERAL');
+		$column_types = array();
+		foreach($row as $r)
+		{
+			$col_type = 'string';
+			if (preg_match("/[A-Za-z]/", $r)) { $col_type = 'string'; }
+			else if (preg_match("/^\-?[1-9][0-9]{0-8}$/", $r)) { $col_type = 'integer'; }
+			else if (preg_match("/^\d+\.[0-9]{2}$/", $r)) { $col_type = '#,##0.00'; }
+			else if (preg_match("/^[0-9]{4}\-[0-9]{2}\-[0-9]{2}$/", $r)) { $col_type = 'date'; }
+			else if (preg_match("/^[0-9]{1,2}\/[0-9]{1,2}\/[0-9]{4}$/", $r)) { $col_type = 'date'; }
+			else if (preg_match("/^[0-9]{1,2}\/[0-9]{1,2}\/[0-9]{4} [0-9]{1,2}:[0-9]{2}/", $r)) { $col_type = 'datetime'; }
+			else if (preg_match("/^[0-9]{4}\-[0-9]{2}\-[0-9]{2} [0-9]{1,2}:[0-9]{2}/", $r)) { $col_type = 'datetime'; }
+			$column_types[] = $c;
+		}
+		return $column_types;
+	}
+	//------------------------------------------------------------------
 	private static function determineNumberFormatType($num_format)
 	{
 		$num_format = str_replace("[RED]", "", $num_format);
-		if ($num_format=='GENERAL') return 'string';
-		if ($num_format=='0') return 'numeric';
-		if (preg_match("/[H]{1,2}:[M]{1,2}/", $num_format)) return 'datetime';
-		if (preg_match("/[M]{1,2}:[S]{1,2}/", $num_format)) return 'datetime';
-		if (preg_match("/[YY]{2,4}/", $num_format)) return 'date';
-		if (preg_match("/[D]{1,2}/", $num_format)) return 'date';
-		if (preg_match("/[M]{1,2}/", $num_format)) return 'date';
-		if (preg_match("/$/", $num_format)) return 'currency';
-		if (preg_match("/%/", $num_format)) return 'percent';
-		if (preg_match("/0/", $num_format)) return 'numeric';
-		return 'string';
+		$num_format = str_replace("[BLUE]", "", $num_format);
+		if ($num_format=='GENERAL') return 'n_string';
+		if ($num_format=='@') return 'n_string';
+		if ($num_format=='0') return 'n_numeric';
+		if (preg_match("/[H]{1,2}:[M]{1,2}/", $num_format)) return 'n_datetime';
+		if (preg_match("/[M]{1,2}:[S]{1,2}/", $num_format)) return 'n_datetime';
+		if (preg_match("/[YY]{2,4}/", $num_format)) return 'n_date';
+		if (preg_match("/[D]{1,2}/", $num_format)) return 'n_date';
+		if (preg_match("/[M]{1,2}/", $num_format)) return 'n_date';
+		if (preg_match("/$/", $num_format)) return 'n_numeric';
+		if (preg_match("/%/", $num_format)) return 'n_numeric';
+		if (preg_match("/0/", $num_format)) return 'n_numeric';
+		return 'n_string';
 	}
 	//------------------------------------------------------------------
 	private static function numberFormatStandardized($num_format)
 	{
+		if ($num_format=='money')
+		{
+			trigger_error("The 'money' numeric format is deprecated, use 'dollar' instead.",  E_USER_DEPRECATED);
+			$num_format='dollar';
+		}
 		//for backwards compatibility, to handle older versions
 		if      ($num_format=='string')   $num_format='GENERAL';
 		else if ($num_format=='integer')  $num_format='0';
 		else if ($num_format=='date')     $num_format='YYYY-MM-DD';
 		else if ($num_format=='datetime') $num_format='YYYY-MM-DD HH:MM:SS';
 		else if ($num_format=='dollar')   $num_format='[$$-1009]#,##0.00;[RED]-[$$-1009]#,##0.00';
-		else if ($num_format=='money')    $num_format='[$$-1009]#,##0.00;[RED]-[$$-1009]#,##0.00';
 		else if ($num_format=='euro')     $num_format='#,##0.00 [$€-407];[RED]-#,##0.00 [$€-407]';
-		else if ($num_format=='NN')       $num_format='DDD';
-		else if ($num_format=='NNN')      $num_format='DDDD';
-		else if ($num_format=='NNNN')     $num_format='DDDD", "';
 		$ignore_until='';
 		$escaped = '';
 		for($i=0,$ix=strlen($num_format); $i<$ix; $i++)
