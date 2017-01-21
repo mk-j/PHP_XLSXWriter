@@ -347,7 +347,7 @@ class XLSXWriter
 			$file->write('<c r="'.$cell_name.'" s="'.$cell_format_index.'" t="n"><v>'.self::xmlspecialchars($value).'</v></c>');//int,float,currency
 		} else if (!is_string($value)){
 			$file->write('<c r="'.$cell_name.'" s="'.$cell_format_index.'" t="n"><v>'.($value*1).'</v></c>');
-		} else if ($value{0}!='0' && $value{0}!='+' && filter_var($value, FILTER_VALIDATE_INT, array('options'=>array('max_range'=>2147483647)))){
+        } else if ($value{0}!='+' && filter_var($value, FILTER_VALIDATE_INT, array('options'=>array('max_range'=>2147483647)))!==false){
 			$file->write('<c r="'.$cell_name.'" s="'.$cell_format_index.'" t="n"><v>'.($value*1).'</v></c>');
 		} else { //implied: ($cell_format=='string')
 			$file->write('<c r="'.$cell_name.'" s="'.$cell_format_index.'" t="s"><v>'.self::xmlspecialchars($this->setSharedString($value)).'</v></c>');
