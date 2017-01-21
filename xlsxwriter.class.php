@@ -16,9 +16,6 @@ class XLSXWriter
 	//------------------------------------------------------------------
 	protected $author ='Doc Author';
 	protected $sheets = array();
-	protected $shared_strings = array();//unique set
-	protected $shared_string_count = 0;//count of non-unique references to the unique set
-	protected $shared_strings_enabled = false;
 	protected $temp_files = array();
 	protected $cell_styles = array();
 	protected $number_formats = array();
@@ -40,7 +37,6 @@ class XLSXWriter
 
 	public function setAuthor($author='') { $this->author=$author; }
 	public function setTempDir($tempdir='') { $this->tempdir=$tempdir; }
-	public function useSharedStrings() { $this->shared_strings_enabled=true; }
 
 	public function __destruct()
 	{
@@ -102,9 +98,6 @@ class XLSXWriter
 		$zip->addEmptyDir("xl/worksheets/");
 		foreach($this->sheets as $sheet) {
 			$zip->addFile($sheet->filename, "xl/worksheets/".$sheet->xmlname );
-		}
-		if (!empty($this->shared_strings)) {
-			$zip->addFile($this->writeSharedStringsXML(), "xl/sharedStrings.xml" );  //$zip->addFromString("xl/sharedStrings.xml",     self::buildSharedStringsXML() );
 		}
 		$zip->addFromString("xl/workbook.xml"         , self::buildWorkbookXML() );
 		$zip->addFile($this->writeStylesXML(), "xl/styles.xml" );  //$zip->addFromString("xl/styles.xml"           , self::buildStylesXML() );
@@ -172,7 +165,6 @@ class XLSXWriter
 		{
 			$number_format = self::numberFormatStandardized($v);
 			$number_format_type = self::determineNumberFormatType($number_format);
-			if ($this->shared_strings_enabled && $number_format_type=="n_string") { $number_format_type="n_sharedstring"; }
 			$cell_style_idx = $this->addCellStyle($number_format, $style_string=null);
 			$column_types[] = array('number_format' => $number_format,//contains excel format like 'YYYY-MM-DD HH:MM:SS'
 									'number_format_type' => $number_format_type, //contains friendly format like 'datetime'
@@ -214,7 +206,7 @@ class XLSXWriter
 		$sheet = &$this->sheets[$sheet_name];
 		if (empty($sheet->columns))
 		{
-			$sheet->columns = $this->initializeColumnTypes( self::autoDetectColumnTypes($row) );
+			$sheet->columns = $this->initializeColumnTypes( return array_fill($from=0, $until=count($row), 'GENERAL') );//will map to n_auto
 		}
 
 		$sheet->file_writer->write('<row collapsed="false" customFormat="false" customHeight="false" hidden="false" ht="12.1" outlineLevel="0" r="' . ($sheet->row_count + 1) . '">');
@@ -310,9 +302,14 @@ class XLSXWriter
 			$file->write('<c r="'.$cell_name.'" s="'.$cell_style_idx.'" t="n"><v>'.self::xmlspecialchars($value).'</v></c>');//int,float,currency
 		} elseif ($num_format_type=='n_string') {
 			$file->write('<c r="'.$cell_name.'" s="'.$cell_style_idx.'" t="inlineStr"><is><t>'.self::xmlspecialchars($value).'</t></is></c>');
-		} elseif ($num_format_type=='n_sharedstring') {
-			$file->write('<c r="'.$cell_name.'" s="'.$cell_style_idx.'" t="s"><v>'.self::xmlspecialchars($this->setSharedString($value)).'</v></c>');
-		} else { //if ($num_format_type=='n_string') {
+		} elseif ($num_format_type=='n_auto') {
+			if (!is_string($value) || $value=='0' || ($value[0]!='0' && ctype_digit($value)) || preg_match("/^\-?[1-9][0-9]*(\.[0-9]+)?$/", $value)){
+				$file->write('<c r="'.$cell_name.'" s="'.$cell_style_idx.'" t="n"><v>'.self::xmlspecialchars($value).'</v></c>');//int,float,currency
+			} else { //implied: ($cell_format=='string')
+				$file->write('<c r="'.$cell_name.'" s="'.$cell_style_idx.'" t="inlineStr"><is><t>'.self::xmlspecialchars($value).'</t></is></c>');
+			}
+		} else {
+			$file->write('<c r="'.$cell_name.'" s="'.$cell_style_idx.'"/>');
 			trigger_error("Unknown column type: ".$num_format_type, E_USER_ERROR);
 		}
 	}
@@ -524,37 +521,6 @@ class XLSXWriter
 		return $temporary_filename;
 	}
 
-	protected function setSharedString($v)
-	{
-		if (isset($this->shared_strings[$v]))
-		{
-			$string_value = $this->shared_strings[$v];
-		}
-		else
-		{
-			$string_value = count($this->shared_strings);
-			$this->shared_strings[$v] = $string_value;
-		}
-		$this->shared_string_count++;//non-unique count
-		return $string_value;
-	}
-
-	protected function writeSharedStringsXML()
-	{
-		$temporary_filename = $this->tempFilename();
-		$file = new XLSXWriter_BuffererWriter($temporary_filename, $fd_flags='w', $check_utf8=true);
-		$file->write('<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'."\n");
-		$file->write('<sst count="'.($this->shared_string_count).'" uniqueCount="'.count($this->shared_strings).'" xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">');
-		foreach($this->shared_strings as $s=>$c)
-		{
-			$file->write('<si><t>'.self::xmlspecialchars($s).'</t></si>');
-		}
-		$file->write('</sst>');
-		$file->close();
-
-		return $temporary_filename;
-	}
-
 	protected function buildAppXML()
 	{
 		$app_xml="";
@@ -617,9 +583,6 @@ class XLSXWriter
 			$wkbkrels_xml.='<Relationship Id="rId'.($i+2).'" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/'.($sheet->xmlname).'"/>';
 			$i++;
 		}
-		if (!empty($this->shared_strings)) {
-			$wkbkrels_xml.='<Relationship Id="rId'.(count($this->sheets)+2).'" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/sharedStrings" Target="sharedStrings.xml"/>';
-		}
 		$wkbkrels_xml.="\n";
 		$wkbkrels_xml.='</Relationships>';
 		return $wkbkrels_xml;
@@ -634,9 +597,6 @@ class XLSXWriter
 		$content_types_xml.='<Override PartName="/xl/_rels/workbook.xml.rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>';
 		foreach($this->sheets as $sheet_name=>$sheet) {
 			$content_types_xml.='<Override PartName="/xl/worksheets/'.($sheet->xmlname).'" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>';
-		}
-		if (!empty($this->shared_strings)) {
-			$content_types_xml.='<Override PartName="/xl/sharedStrings.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sharedStrings+xml"/>';
 		}
 		$content_types_xml.='<Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/>';
 		$content_types_xml.='<Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/>';
@@ -690,30 +650,10 @@ class XLSXWriter
 		return $first_key;
 	}
 	//------------------------------------------------------------------
-	private static function autoDetectColumnTypes($row)
-	{
-		//return array_fill($from=0, $until=count($row), 'GENERAL');
-		$column_types = array();
-		foreach($row as $r)
-		{
-			$col_type = 'string';
-			if (preg_match("/[A-Za-z]/", $r)) { $col_type = 'string'; }
-			else if (preg_match("/^\-?[1-9][0-9]{0-8}$/", $r)) { $col_type = 'integer'; }
-			else if (preg_match("/^\d+\.[0-9]{2}$/", $r)) { $col_type = '#,##0.00'; }
-			else if (preg_match("/^[0-9]{4}\-[0-9]{2}\-[0-9]{2}$/", $r)) { $col_type = 'date'; }
-			else if (preg_match("/^[0-9]{1,2}\/[0-9]{1,2}\/[0-9]{4}$/", $r)) { $col_type = 'date'; }
-			else if (preg_match("/^[0-9]{1,2}\/[0-9]{1,2}\/[0-9]{4} [0-9]{1,2}:[0-9]{2}/", $r)) { $col_type = 'datetime'; }
-			else if (preg_match("/^[0-9]{4}\-[0-9]{2}\-[0-9]{2} [0-9]{1,2}:[0-9]{2}/", $r)) { $col_type = 'datetime'; }
-			$column_types[] = $c;
-		}
-		return $column_types;
-	}
-	//------------------------------------------------------------------
 	private static function determineNumberFormatType($num_format)
 	{
-		$num_format = str_replace("[RED]", "", $num_format);
-		$num_format = str_replace("[BLUE]", "", $num_format);
-		if ($num_format=='GENERAL') return 'n_string';
+		$num_format = preg_replace("/\[(Black|Blue|Cyan|Green|Magenta|Red|White|Yellow)\]/i", "", $num_format);
+		if ($num_format=='GENERAL') return 'n_auto';
 		if ($num_format=='@') return 'n_string';
 		if ($num_format=='0') return 'n_numeric';
 		if (preg_match("/[H]{1,2}:[M]{1,2}/", $num_format)) return 'n_datetime';
@@ -724,7 +664,7 @@ class XLSXWriter
 		if (preg_match("/$/", $num_format)) return 'n_numeric';
 		if (preg_match("/%/", $num_format)) return 'n_numeric';
 		if (preg_match("/0/", $num_format)) return 'n_numeric';
-		return 'n_string';
+		return 'n_auto';
 	}
 	//------------------------------------------------------------------
 	private static function numberFormatStandardized($num_format)
@@ -735,7 +675,7 @@ class XLSXWriter
 			$num_format='dollar';
 		}
 		//for backwards compatibility, to handle older versions
-		if      ($num_format=='string')   $num_format='GENERAL';
+		if      ($num_format=='string')   $num_format='@';
 		else if ($num_format=='integer')  $num_format='0';
 		else if ($num_format=='date')     $num_format='YYYY-MM-DD';
 		else if ($num_format=='datetime') $num_format='YYYY-MM-DD HH:MM:SS';
