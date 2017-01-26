@@ -206,7 +206,7 @@ class XLSXWriter
 		$sheet = &$this->sheets[$sheet_name];
 		if (empty($sheet->columns))
 		{
-			$sheet->columns = $this->initializeColumnTypes( return array_fill($from=0, $until=count($row), 'GENERAL') );//will map to n_auto
+			$sheet->columns = $this->initializeColumnTypes( array_fill($from=0, $until=count($row), 'GENERAL') );//will map to n_auto
 		}
 
 		$sheet->file_writer->write('<row collapsed="false" customFormat="false" customHeight="false" hidden="false" ht="12.1" outlineLevel="0" r="' . ($sheet->row_count + 1) . '">');
@@ -669,16 +669,16 @@ class XLSXWriter
 	//------------------------------------------------------------------
 	private static function numberFormatStandardized($num_format)
 	{
-		if ($num_format=='money')
+		if ($num_format=='money')//for backwards compatibility, to handle older versions
 		{
-			trigger_error("The 'money' numeric format is deprecated, use 'dollar' instead.",  E_USER_DEPRECATED);
+			//trigger_error("The 'money' numeric format is deprecated, use 'dollar' instead.",  E_USER_DEPRECATED);
 			$num_format='dollar';
 		}
-		//for backwards compatibility, to handle older versions
 		if      ($num_format=='string')   $num_format='@';
 		else if ($num_format=='integer')  $num_format='0';
 		else if ($num_format=='date')     $num_format='YYYY-MM-DD';
 		else if ($num_format=='datetime') $num_format='YYYY-MM-DD HH:MM:SS';
+		else if ($num_format=='price')    $num_format='#,##0.00';
 		else if ($num_format=='dollar')   $num_format='[$$-1009]#,##0.00;[RED]-[$$-1009]#,##0.00';
 		else if ($num_format=='euro')     $num_format='#,##0.00 [$€-407];[RED]-#,##0.00 [$€-407]';
 		$ignore_until='';
