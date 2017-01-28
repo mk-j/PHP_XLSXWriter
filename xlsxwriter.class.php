@@ -3,8 +3,6 @@
  * @license MIT License
  * */
 
-if (!class_exists('ZipArchive')) { throw new Exception('ZipArchive not found'); }
-
 class XLSXWriter
 {
 	//------------------------------------------------------------------
