@@ -24,24 +24,6 @@ $writer->writeSheet($data);
 $writer->writeToFile('output.xlsx');
 ```
 
-Multiple Sheets:
-```php
-$data1 = array(  
-     array('5','3'),
-     array('1','6'),
-);
-$data2 = array(  
-     array('2','7','9'),
-     array('4','8','0'),
-);
-
-$writer = new XLSXWriter();
-$writer->setAuthor('Doc Author');
-$writer->writeSheet($data1,'Sheet1');
-$writer->writeSheet($data2,'Sheet2');
-echo $writer->writeToString();
-```
-
 Simple/Advanced Cell Formats:
 ```php
 //simple formats: date, datetime, integer, dollar, euro, string
@@ -49,7 +31,7 @@ $header = array(
   'created'=>'date',
   'product_id'=>'integer',
   'quantity'=>'#,##0',
-  'amount'=>'dollar',
+  'amount'=>'price',
   'description'=>'string',
   'tax'=>'[$$-1009]#,##0.00;[RED]-[$$-1009]#,##0.00',
 );
@@ -59,20 +41,56 @@ $data = array(
 );
 
 $writer = new XLSXWriter();
-$writer->writeSheet($data,'Sheet1', $header);
+$writer->writeSheetHeader('Sheet1', $header );
+foreach($data as $row)
+	$writer->writeSheet('Sheet1', $row, );
 $writer->writeToFile('example.xlsx');
 ```
 
-Load test with 50000 rows: (runs fast, with low memory usage)
+50000 rows: (1.4s, 0MB memory usage)
 ```php
 include_once("xlsxwriter.class.php");
-$header = array('c1'=>'string','c2'=>'string','c3'=>'string','c4'=>'string');
 $writer = new XLSXWriter();
-$writer->writeSheetHeader('Sheet1', $header );//optional
+$writer->writeSheetHeader('Sheet1', array('c1'=>'integer','c2'=>'integer','c3'=>'integer','c4'=>'integer') );
 for($i=0; $i<50000; $i++)
 {
-    $writer->writeSheetRow('Sheet1', array(rand()%10000,rand()%10000,rand()%10000,rand()%10000) );
+    $writer->writeSheetRow('Sheet1', array($i, $i+1, $i+2, $i+3, $i+4) );
 }
 $writer->writeToFile('output.xlsx');
 echo '#'.floor((memory_get_peak_usage())/1024/1024)."MB"."\n";
 ```
+Memory usage will not increase due to rowcount
+
+| rows   | time | memory |
+| ------ | ---- | ------ |
+|  50000 | 1.4s | 0MB    |
+| 100000 | 2.7s | 0MB    |
+| 150000 | 4.1s | 0MB    |
+| 200000 | 5.7s | 0MB    |
+| 250000 | 7.0s | 0MB    |
+
+Simple cell formats map to more advanced cell formats
+| simple formats | format code |
+| string   | @ |
+| integer  | 0 |
+| date     | YYYY-MM-DD |
+| datetime | YYYY-MM-DD HH:MM:SS |
+| price    | #,##0.00 |
+| dollar   | [$$-1009]#,##0.00;[RED]-[$$-1009]#,##0.00 |
+| euro     | '#,##0.00 [$€-407];[RED]-#,##0.00 [$€-407] |
+
+
+Basic cell styles have been available since version 0.30
+
+| style      | allowed values |
+| ---------- | ----  |
+| font       | '', 'Arial', 'Times New Roman', 'Courier New', 'Comic Sans MS' |
+| font-style | '', 'bold','italic','underline','strikethrough' or a combination ie: 'bold,italic' |
+| font-size  | 8,9,10,11,12 |
+| border     | '', 'left','right','top','bottom' or a combination ie: 'top,left' |
+| color      | #RRGGBB, ie: #ff99cc or #f9c |
+| fill       | #RRGGBB, ie: #eeffee or #efe |
+| halign     | 'general','left','right','justify','center' |
+| valign     | 'bottom','center','distributed' |
+
+

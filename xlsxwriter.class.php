@@ -317,7 +317,6 @@ class XLSXWriter
 	protected function styleFontIndexes()
 	{
 		static $border_allowed = array('left','right','top','bottom');
-		static $emphasis_allowed = array('bold','italic');
 		static $horizontal_allowed = array('general','left','right','justify','center');
 		static $vertical_allowed = array('bottom','center','distributed');
 		$default_font = array('size'=>'10','name'=>'Arial','family'=>'2');
@@ -669,11 +668,9 @@ class XLSXWriter
 	//------------------------------------------------------------------
 	private static function numberFormatStandardized($num_format)
 	{
-		if ($num_format=='money')//for backwards compatibility, to handle older versions
-		{
-			//trigger_error("The 'money' numeric format is deprecated, use 'dollar' instead.",  E_USER_DEPRECATED);
-			$num_format='dollar';
-		}
+		if ($num_format=='money') { $num_format='dollar'; }
+		if ($num_format=='number') { $num_format='integer'; }
+
 		if      ($num_format=='string')   $num_format='@';
 		else if ($num_format=='integer')  $num_format='0';
 		else if ($num_format=='date')     $num_format='YYYY-MM-DD';
