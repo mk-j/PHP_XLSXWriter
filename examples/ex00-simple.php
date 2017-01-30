@@ -3,14 +3,14 @@ set_include_path( get_include_path().PATH_SEPARATOR."..");
 include_once("xlsxwriter.class.php");
 
 $header = array(
-  'c1'=>'string',//text
-  'c2'=>'@',//text
-  'c3'=>'integer',
-  'c4'=>'0',
-  'c5'=>'dollar',
-  'c6'=>'#,##0.00',//custom
-  'c7'=>'date',
-  'c8'=>'YYYY-MM-DD',
+  'c1-text'=>'string',//text
+  'c2-text'=>'@',//text
+  'c3-integer'=>'integer',
+  'c4-integer'=>'0',
+  'c5-price'=>'price',
+  'c6-price'=>'#,##0.00',//custom
+  'c7-date'=>'date',
+  'c8-date'=>'YYYY-MM-DD',
 );
 $rows = array(
   array('x101',102,103,104,105,106,'2018-01-07','2018-01-08'),
@@ -22,7 +22,14 @@ $rows = array(
   array('x701',702,703,704,705,706,'2018-07-07','2018-07-08'),
 );
 $writer = new XLSXWriter();
-$writer->writeSheet($rows,'Sheet1', $header);
-$writer->writeToFile('xlsx-simple.xlsx');
 
+$writer->writeSheetHeader('Sheet1', $header);
+foreach($rows as $row)
+	$writer->writeSheetRow('Sheet1', $row);
+
+//$writer->writeSheet($rows,'Sheet1', $header);//or write the whole sheet in 1 call
+
+$writer->writeToFile('xlsx-simple.xlsx');
+//$writer->writeToStdOut();
+//echo $writer->writeToString();
 

@@ -51,6 +51,8 @@ $writer->writeSheetRow('Currencies',array($amount,$amount,$amount,$amount,$amoun
 $writer->writeToFile('xlsx-formats.xlsx');
 //$writer->writeToStdOut();
 //echo $writer->writeToString();
+
+echo '#'.floor((memory_get_peak_usage())/1024/1024)."MB"."\n";
 exit(0);
 
 

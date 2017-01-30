@@ -5,7 +5,7 @@ include_once("xlsxwriter.class.php");
 $header = array(
     'year'=>'string',
     'month'=>'string',
-    'amount'=>'money',
+    'amount'=>'price',
     'first_event'=>'datetime',
     'second_event'=>'date',
 );
@@ -19,12 +19,16 @@ $data2 = array(
     array('2003','02','345.12','2000000000'),
 );
 $writer = new XLSXWriter();
-$writer->setAuthor('Some Author');
-$writer->writeSheet($data1,'Sheet1',$header);
-$writer->writeSheet($data2,'Sheet2');
+$writer->writeSheetHeader('Sheet1', $header);
+foreach($data1 as $row)
+	$writer->writeSheetRow('Sheet1', $row);
+foreach($data2 as $row)
+	$writer->writeSheetRow('Sheet2', $row);
+
 $writer->writeToFile('xlsx-sheets.xlsx');
 //$writer->writeToStdOut();
 //echo $writer->writeToString();
+
 exit(0);
 
 
