@@ -10,14 +10,17 @@ $writer->setTempDir(sys_get_temp_dir());//set custom tempdir
 $sheet1 = 'merged_cells';
 $header = array("string","string","string","string","string");
 $rows = array(
-    array("Merge Cells Example"),
+    array("Merge Cells Example", 3 => "Second Merged Cell"),
     array(100, 200, 300, 400, 500),
     array(110, 210, 310, 410, 510),
 );
 $writer->writeSheetHeader($sheet1, $header, $suppress_header_row = true);
 foreach($rows as $row)
 	$writer->writeSheetRow($sheet1, $row);
-$writer->markMergedCell($sheet1, $start_row=0, $start_col=0, $end_row=0, $end_col=4);
+// Merge Cells Example
+$writer->markMergedCell($sheet1, $start_row=0, $start_col=0, $end_row=0, $end_col=2);
+// Second Merged Cell
+$writer->markMergedCell($sheet1, $start_row=0, $start_col=3, $end_row=0, $end_col=4);
 
 //----
 $sheet2 = 'utf8_examples';

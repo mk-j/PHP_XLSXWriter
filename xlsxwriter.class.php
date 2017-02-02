@@ -161,12 +161,12 @@ class XLSXWriter
 	private function initializeColumnTypes($header_types)
 	{
 		$column_types = array();
-		foreach($header_types as $v)
+		foreach($header_types as $c => $v)
 		{
 			$number_format = self::numberFormatStandardized($v);
 			$number_format_type = self::determineNumberFormatType($number_format);
 			$cell_style_idx = $this->addCellStyle($number_format, $style_string=null);
-			$column_types[] = array('number_format' => $number_format,//contains excel format like 'YYYY-MM-DD HH:MM:SS'
+			$column_types[$c] = array('number_format' => $number_format,//contains excel format like 'YYYY-MM-DD HH:MM:SS'
 									'number_format_type' => $number_format_type, //contains friendly format like 'datetime'
 									'default_cell_style' => $cell_style_idx,
 									);
@@ -206,17 +206,15 @@ class XLSXWriter
 		$sheet = &$this->sheets[$sheet_name];
 		if (empty($sheet->columns))
 		{
-			$sheet->columns = $this->initializeColumnTypes( array_fill($from=0, $until=count($row), 'GENERAL') );//will map to n_auto
+			$sheet->columns = $this->initializeColumnTypes(array_fill($from=0, $until=key(array_slice($row, -1, 1, true))+1, 'GENERAL'));//will map to n_auto
 		}
 
 		$sheet->file_writer->write('<row collapsed="false" customFormat="false" customHeight="false" hidden="false" ht="12.1" outlineLevel="0" r="' . ($sheet->row_count + 1) . '">');
-		$c=0;
-		foreach ($row as $v) {
+		foreach ($row as $c => $v) {
 			$number_format = $sheet->columns[$c]['number_format'];
 			$number_format_type = $sheet->columns[$c]['number_format_type'];
 			$cell_style_idx = empty($style) ? $sheet->columns[$c]['default_cell_style'] : $this->addCellStyle( $number_format, json_encode(isset($style[0]) ? $style[$c] : $style) );
 			$this->writeCell($sheet->file_writer, $sheet->row_count, $c, $v, $number_format_type, $cell_style_idx);
-			$c++;
 		}
 		$sheet->file_writer->write('</row>');
 		$sheet->row_count++;
@@ -396,7 +394,7 @@ class XLSXWriter
 		$fonts = $r['fonts'];
 		$borders = $r['borders'];
 		$style_indexes = $r['styles'];
-		
+
 		$temporary_filename = $this->tempFilename();
 		$file = new XLSXWriter_BuffererWriter($temporary_filename);
 		$file->write('<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'."\n");
@@ -442,7 +440,7 @@ class XLSXWriter
 			}
 		}
 		$file->write('</fills>');
-		
+
 		$file->write('<borders count="'.(count($borders)).'">');
         $file->write(    '<border diagonalDown="false" diagonalUp="false"><left/><right/><top/><bottom/><diagonal/></border>');
 		foreach($borders as $border) {
@@ -458,7 +456,7 @@ class XLSXWriter
 			}
 		}
 		$file->write('</borders>');
-		
+
 		$file->write('<cellStyleXfs count="20">');
 		$file->write(		'<xf applyAlignment="true" applyBorder="true" applyFont="true" applyProtection="true" borderId="0" fillId="0" fontId="0" numFmtId="164">');
 		$file->write(		'<alignment horizontal="general" indent="0" shrinkToFit="false" textRotation="0" vertical="bottom" wrapText="false"/>');
@@ -484,7 +482,7 @@ class XLSXWriter
 		$file->write(		'<xf applyAlignment="false" applyBorder="false" applyFont="true" applyProtection="false" borderId="0" fillId="0" fontId="1" numFmtId="42"/>');
 		$file->write(		'<xf applyAlignment="false" applyBorder="false" applyFont="true" applyProtection="false" borderId="0" fillId="0" fontId="1" numFmtId="9"/>');
 		$file->write('</cellStyleXfs>');
-		
+
 		$file->write('<cellXfs count="'.(count($style_indexes)).'">');
 		//$file->write(		'<xf applyAlignment="false" applyBorder="false" applyFont="false" applyProtection="false" borderId="0" fillId="0" fontId="0" numFmtId="164" xfId="0"/>');
 		//$file->write(		'<xf applyAlignment="false" applyBorder="false" applyFont="false" applyProtection="false" borderId="0" fillId="0" fontId="0" numFmtId="165" xfId="0"/>');
