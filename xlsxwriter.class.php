@@ -5,6 +5,21 @@
 
 if (!class_exists('ZipArchive')) { throw new Exception('ZipArchive not found'); }
 
+
+class XLSXColumnInfo
+{
+	public $collapsed = false;
+	public $hidden = false;
+	public $width = '11.5';
+
+	public function __construct($width, $collapsed = false, $hidden = false)
+	{
+		$this->width = $width;
+		$this->collapsed = $collapsed;
+		$this->hidden = $hidden;
+	}
+}
+
 class XLSXWriter
 {
 	//http://www.ecma-international.org/publications/standards/Ecma-376.htm
@@ -70,6 +85,9 @@ class XLSXWriter
 		return $string;
 	}
 
+	/**
+	 * @param string $filename
+	 */
 	public function writeToFile($filename)
 	{
 		foreach($this->sheets as $sheet_name => $sheet) {
@@ -108,7 +126,11 @@ class XLSXWriter
 		$zip->close();
 	}
 
-	protected function initializeSheet($sheet_name)
+	/**
+	 * @param string $sheet_name
+	 * @param XLSXColumnInfo[] $columnInfoList
+	 */
+	protected function initializeSheet($sheet_name, array $columnInfoList = array())
 	{
 		//if already initialized
 		if ($this->current_sheet==$sheet_name || isset($this->sheets[$sheet_name]))
@@ -145,7 +167,22 @@ class XLSXWriter
 		$sheet->file_writer->write(    '</sheetView>');
 		$sheet->file_writer->write(  '</sheetViews>');
 		$sheet->file_writer->write(  '<cols>');
-		$sheet->file_writer->write(    '<col collapsed="false" hidden="false" max="1025" min="1" style="0" width="11.5"/>');
+
+		$column = 0;
+		foreach ($columnInfoList as $columnInfoObject)
+			if ($columnInfoObject instanceof XLSXColumnInfo && ++$column)
+				$sheet->file_writer->write(
+					'<col '.
+						'collapsed="'.($columnInfoObject->collapsed?'true':'false').'" '.
+						'hidden="'.($columnInfoObject->hidden?'true':'false').'" '.
+						'max="'.$column.'" '.
+						'min="'.$column.'" '.
+						'style="0" '.
+						'width="'.$columnInfoObject->width.'" '.
+					'/>'
+				);
+
+		$sheet->file_writer->write(    '<col collapsed="false" hidden="false" max="'.(1025+$column).'" min="'.$column.'" style="0" width="11.5" />');
 		$sheet->file_writer->write(  '</cols>');
 		$sheet->file_writer->write(  '<sheetData>');
 	}
@@ -174,12 +211,18 @@ class XLSXWriter
 		return $column_types;
 	}
 
-	public function writeSheetHeader($sheet_name, array $header_types, $suppress_row = false)
+	/**
+	 * @param string $sheet_name
+	 * @param array $header_types
+	 * @param bool  $suppress_row
+	 * @param XLSXColumnInfo[] $columnInfoList
+	 */
+	public function writeSheetHeader($sheet_name, array $header_types, $suppress_row = false, $columnInfoList = array())
 	{
 		if (empty($sheet_name) || empty($header_types) || !empty($this->sheets[$sheet_name]))
 			return;
 
-		self::initializeSheet($sheet_name);
+		self::initializeSheet($sheet_name, $columnInfoList);
 		$sheet = &$this->sheets[$sheet_name];
 		$sheet->columns = $this->initializeColumnTypes($header_types);
 		if (!$suppress_row)
