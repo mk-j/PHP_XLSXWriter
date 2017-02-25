@@ -197,7 +197,7 @@ class XLSXWriter
 		$this->current_sheet = $sheet_name;
 	}
 
-	public function writeSheetRow($sheet_name, array $row, $style=null)
+	public function writeSheetRow($sheet_name, array $row, $style=null, $hidden=false)
 	{
 		if (empty($sheet_name) || empty($row))
 			return;
@@ -209,7 +209,7 @@ class XLSXWriter
 			$sheet->columns = $this->initializeColumnTypes( array_fill($from=0, $until=count($row), 'GENERAL') );//will map to n_auto
 		}
 
-		$sheet->file_writer->write('<row collapsed="false" customFormat="false" customHeight="false" hidden="false" ht="12.1" outlineLevel="0" r="' . ($sheet->row_count + 1) . '">');
+		$sheet->file_writer->write('<row collapsed="false" customFormat="false" customHeight="false" hidden="'.$hidden.'" ht="12.1" outlineLevel="0" r="' . ($sheet->row_count + 1) . '">');
 		$c=0;
 		foreach ($row as $v) {
 			$number_format = $sheet->columns[$c]['number_format'];
