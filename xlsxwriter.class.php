@@ -3,8 +3,6 @@
  * @license MIT License
  * */
 
-if (!class_exists('ZipArchive')) { throw new Exception('ZipArchive not found'); }
-
 class XLSXWriter
 {
 	//http://www.ecma-international.org/publications/standards/Ecma-376.htm

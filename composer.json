@@ -14,7 +14,8 @@
         "phpunit/phpunit": "4.3.*"
     },
     "require": {
-        "php": ">=5.2.1"
+        "php": ">=5.2.1",
+        "ext-zip": "*"
     },
     "scripts": {
         "post-install-cmd": [
