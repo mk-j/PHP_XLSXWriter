@@ -15,16 +15,5 @@
     "require": {
         "php": ">=5.2.1",
         "ext-zip": "*"
-    },
-    "scripts": {
-        "post-install-cmd": [
-            "xrstf\\Composer52\\Generator::onPostInstallCmd"
-        ],
-        "post-update-cmd": [
-            "xrstf\\Composer52\\Generator::onPostInstallCmd"
-        ],
-        "post-autoload-dump": [
-            "xrstf\\Composer52\\Generator::onPostInstallCmd"
-        ]
     }
 }
