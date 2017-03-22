@@ -1,6 +1,7 @@
 <?php
-set_include_path( get_include_path().PATH_SEPARATOR."..");
-include_once("xlsxwriter.class.php");
+require_once(__DIR__ . '/../vendor/autoload.php');
+
+use pti\XLSXWriter\XLSXWriter;
 
 $writer = new XLSXWriter();
 $writer->writeSheetHeader('Sheet1', array('c1'=>'integer','c2'=>'integer','c3'=>'integer','c4'=>'integer') );//optional
