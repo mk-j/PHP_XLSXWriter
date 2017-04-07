@@ -1,5 +1,5 @@
 <?php
-		include_once('PAI_xlsxwriter.class.php');
+		include_once('xlsxwriter.class.php');
 		$filename = "example-colwidths.xlsx";
 		header('Content-disposition: attachment; filename="'.XLSXWriter::sanitize_filename($filename).'"');
 		header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
