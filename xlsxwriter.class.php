@@ -1,5 +1,5 @@
 <?php
-/*
+/*	Updated for column width by Pathfinder Associates, Inc. 4/2/2017
  * @license MIT License
  * */
 
@@ -9,10 +9,16 @@ class XLSXWriter
 	//http://officeopenxml.com/SSstyles.php
 	//------------------------------------------------------------------
 	//http://office.microsoft.com/en-us/excel-help/excel-specifications-and-limits-HP010073849.aspx
+	// added version property so apps can check version
+	const version = "0.40";
 	const EXCEL_2007_MAX_ROW=1048576;
 	const EXCEL_2007_MAX_COL=16384;
 	//------------------------------------------------------------------
 	protected $author ='Doc Author';
+	// this is the width for all columns with default of 11.5
+	protected $colwidth = '11.5';
+	// this multidimensional array contains key of sheet name, value as array of colwidths for that sheet
+	protected $colwidths = array();
 	protected $sheets = array();
 	protected $temp_files = array();
 	protected $cell_styles = array();
@@ -34,6 +40,14 @@ class XLSXWriter
 	}
 
 	public function setAuthor($author='') { $this->author=$author; }
+
+	// set default colwidth for all columns
+	public function setColWidth($width) { $this->colwidth=$width; }
+	
+	//function to set colwidths for a sheet
+	public function setColWidths($sheet_name,$cols){
+		$this->colwidths[$sheet_name]=$cols;
+	}
 	public function setTempDir($tempdir='') { $this->tempdir=$tempdir; }
 
 	public function __destruct()
@@ -142,10 +156,36 @@ class XLSXWriter
 		$sheet->file_writer->write(      '<selection activeCell="A1" activeCellId="0" pane="topLeft" sqref="A1"/>');
 		$sheet->file_writer->write(    '</sheetView>');
 		$sheet->file_writer->write(  '</sheetViews>');
+		// added default col width
+		$sheet->file_writer->write(  '<sheetFormatPr defaultColWidth="11.5" defaultRowHeight="15" outlineLevelCol="5"/>');
 		$sheet->file_writer->write(  '<cols>');
-		$sheet->file_writer->write(    '<col collapsed="false" hidden="false" max="1025" min="1" style="0" width="11.5"/>');
+		$c = $this->buildColXML($sheet_name);
+		$sheet->file_writer->write($c);
 		$sheet->file_writer->write(  '</cols>');
 		$sheet->file_writer->write(  '<sheetData>');
+	}
+	
+	private function buildColXML($sheet_name){
+		// Using array with colwidths for each sheet
+		//   step thru colwidth array for this sheet writing <col with width for each column
+		if (array_key_exists($sheet_name, $this->colwidths)) {
+			$col = $this->colwidths[$sheet_name];
+			for ($i=0; $i<count($col);$i++){
+				$c .= '<col max="' ;
+				$c .= $i+1 ;
+				$c .= '" min="' ;
+				$c .= $i+1; 
+				$c .= '" width="' ;
+				$c .= $col[$i]; 
+				$c .= '"/> ';
+			}
+		} else {
+			// if no specific colwidths for this sheet then default
+			$c = '<col max="1025" min="1" width="';
+			$c .= $this->colwidth; 
+			$c .= '"/>"';
+		}
+		return $c;
 	}
 
 	private function addCellStyle($number_format, $cell_style_string)
