@@ -1,5 +1,5 @@
 <?php
-/*	Updated for column width by Pathfinder Associates, Inc. 4/2/2017
+/*	Updated for column width by Pathfinder Associates, Inc. 4/10/2017
  * @license MIT License
  * */
 
@@ -10,7 +10,7 @@ class XLSXWriter
 	//------------------------------------------------------------------
 	//http://office.microsoft.com/en-us/excel-help/excel-specifications-and-limits-HP010073849.aspx
 	// added version property so apps can check version
-	const version = "0.40";
+	const version = "0.41";
 	const EXCEL_2007_MAX_ROW=1048576;
 	const EXCEL_2007_MAX_COL=16384;
 	//------------------------------------------------------------------
@@ -183,7 +183,7 @@ class XLSXWriter
 			// if no specific colwidths for this sheet then default
 			$c = '<col max="1025" min="1" width="';
 			$c .= $this->colwidth; 
-			$c .= '"/>"';
+			$c .= '"/>';
 		}
 		return $c;
 	}
