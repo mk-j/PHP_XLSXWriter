@@ -94,4 +94,12 @@ Basic cell styles have been available since version 0.30
 | halign     | general, left, right, justify, center |
 | valign     | bottom, center, distributed |
 
+Set column width the same for all columns or set colwidths by column for each sheet since version 0.XX
+ -- see example-colwidths.php
+ Two new members of the class that must be called before sheet is initialized:
+	$writer->setColWidth("40"); -- sets all columns for newly initialized sheets to 40
+	$writer->setColWidths('Sheet1', array(7,12,15,40)); -- sets for four columns in Sheet1 to specific widths
+
+
+
 
