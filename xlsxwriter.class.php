@@ -350,6 +350,11 @@ class XLSXWriter
 				$style_indexes[$i]['alignment'] = true;
 				$style_indexes[$i]['valign'] = $style['valign'];
 			}
+			if (isset($style['wrap_text']))
+			{
+				$style_indexes[$i]['alignment'] = true;
+				$style_indexes[$i]['wrap_text'] = $style['wrap_text'];
+			}
 
 			$font = $default_font;
 			if (isset($style['font-size']))
