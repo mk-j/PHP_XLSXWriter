@@ -227,16 +227,25 @@ class XLSXWriter
 			return;
 		}
 
-		self::initializeSheet($sheet_name);
+		$this->initializeSheet($sheet_name);
 		$sheet = &$this->sheets[$sheet_name];
 		if (empty($sheet->columns)) {
-			$sheet->columns = $this->initializeColumnTypes( array_fill($from=0, $until=count($row), 'GENERAL') );//will map to n_auto
+			$sheet->columns = $this->initializeColumnTypes(array_fill($from = 0, $until = count($row), 'GENERAL'));//will map to n_auto
 		}
 
 		$sheet->file_writer->write('<row collapsed="false" customFormat="false" customHeight="false" hidden="false" ht="12.1" outlineLevel="0" r="' . ($sheet->row_count + 1) . '">');
 		$sheet->file_writer->write('</row>');
 		$sheet->row_count++;
 		$this->current_sheet = $sheet_name;
+	}
+
+    public function countSheetRows($sheet_name = '')
+	{
+        $sheet_name = $sheet_name ?: $this->current_sheet;
+
+		return array_key_exists($sheet_name, $this->sheets)
+            ? $this->sheets[$sheet_name]->row_count
+            : 0;
 	}
 
 	protected function finalizeSheet($sheet_name)
