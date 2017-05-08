@@ -715,7 +715,7 @@ class XLSXWriter
 		{
 			list($junk,$year,$month,$day) = $matches;
 		}
-		if (preg_match("/(\d{2}):(\d{2}):(\d{2})/", $date_time, $matches))
+		if (preg_match("/(\d+):(\d{2}):(\d{2})/", $date_time, $matches))
 		{
 			list($junk,$hour,$min,$sec) = $matches;
 			$seconds = ( $hour * 60 * 60 + $min * 60 + $sec ) / ( 24 * 60 * 60 );
