@@ -350,6 +350,11 @@ class XLSXWriter
 				$style_indexes[$i]['alignment'] = true;
 				$style_indexes[$i]['valign'] = $style['valign'];
 			}
+			if (isset($style['wrap_text']))
+			{
+				$style_indexes[$i]['alignment'] = true;
+				$style_indexes[$i]['wrap_text'] = $style['wrap_text'];
+			}
 
 			$font = $default_font;
 			if (isset($style['font-size']))
@@ -391,7 +396,7 @@ class XLSXWriter
 		$fonts = $r['fonts'];
 		$borders = $r['borders'];
 		$style_indexes = $r['styles'];
-		
+
 		$temporary_filename = $this->tempFilename();
 		$file = new XLSXWriter_BuffererWriter($temporary_filename);
 		$file->write('<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'."\n");
@@ -437,7 +442,7 @@ class XLSXWriter
 			}
 		}
 		$file->write('</fills>');
-		
+
 		$file->write('<borders count="'.(count($borders)).'">');
         $file->write(    '<border diagonalDown="false" diagonalUp="false"><left/><right/><top/><bottom/><diagonal/></border>');
 		foreach($borders as $border) {
@@ -453,7 +458,7 @@ class XLSXWriter
 			}
 		}
 		$file->write('</borders>');
-		
+
 		$file->write('<cellStyleXfs count="20">');
 		$file->write(		'<xf applyAlignment="true" applyBorder="true" applyFont="true" applyProtection="true" borderId="0" fillId="0" fontId="0" numFmtId="164">');
 		$file->write(		'<alignment horizontal="general" indent="0" shrinkToFit="false" textRotation="0" vertical="bottom" wrapText="false"/>');
@@ -479,7 +484,7 @@ class XLSXWriter
 		$file->write(		'<xf applyAlignment="false" applyBorder="false" applyFont="true" applyProtection="false" borderId="0" fillId="0" fontId="1" numFmtId="42"/>');
 		$file->write(		'<xf applyAlignment="false" applyBorder="false" applyFont="true" applyProtection="false" borderId="0" fillId="0" fontId="1" numFmtId="9"/>');
 		$file->write('</cellStyleXfs>');
-		
+
 		$file->write('<cellXfs count="'.(count($style_indexes)).'">');
 		//$file->write(		'<xf applyAlignment="false" applyBorder="false" applyFont="false" applyProtection="false" borderId="0" fillId="0" fontId="0" numFmtId="164" xfId="0"/>');
 		//$file->write(		'<xf applyAlignment="false" applyBorder="false" applyFont="false" applyProtection="false" borderId="0" fillId="0" fontId="0" numFmtId="165" xfId="0"/>');
@@ -488,6 +493,7 @@ class XLSXWriter
 		foreach($style_indexes as $v)
 		{
 			$applyAlignment = isset($v['alignment']) ? 'true' : 'false';
+			$wrapText = isset($v['wrap_text']) ? 'true' : 'false';
 			$horizAlignment = isset($v['halign']) ? $v['halign'] : 'general';
 			$vertAlignment = isset($v['valign']) ? $v['valign'] : 'bottom';
 			$applyBorder = isset($v['border_idx']) ? 'true' : 'false';
@@ -497,7 +503,7 @@ class XLSXWriter
 			$fontIdx = isset($v['font_idx']) ? intval($v['font_idx']) : 0;
 			//$file->write('<xf applyAlignment="'.$applyAlignment.'" applyBorder="'.$applyBorder.'" applyFont="'.$applyFont.'" applyProtection="false" borderId="'.($borderIdx).'" fillId="'.($fillIdx).'" fontId="'.($fontIdx).'" numFmtId="'.(164+$v['num_fmt_idx']).'" xfId="0"/>');
 			$file->write('<xf applyAlignment="'.$applyAlignment.'" applyBorder="'.$applyBorder.'" applyFont="'.$applyFont.'" applyProtection="false" borderId="'.($borderIdx).'" fillId="'.($fillIdx).'" fontId="'.($fontIdx).'" numFmtId="'.(164+$v['num_fmt_idx']).'" xfId="0">');
-			$file->write('	<alignment horizontal="'.$horizAlignment.'" vertical="'.$vertAlignment.'" textRotation="0" wrapText="false" indent="0" shrinkToFit="false"/>');
+			$file->write('	<alignment horizontal="'.$horizAlignment.'" vertical="'.$vertAlignment.'" textRotation="0" wrapText="'.$wrapText.'" indent="0" shrinkToFit="false"/>');
 			$file->write('	<protection locked="true" hidden="false"/>');
 			$file->write('</xf>');
 		}
