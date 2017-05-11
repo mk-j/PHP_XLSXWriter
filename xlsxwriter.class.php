@@ -20,6 +20,8 @@ class XLSXWriter
 
 	protected $current_sheet = '';
 
+	private static $write_escape_symbols = false;
+
 	public function __construct()
 	{
 		if(!ini_get('date.timezone'))
@@ -240,13 +242,13 @@ class XLSXWriter
 		$this->current_sheet = $sheet_name;
 	}
 
-    public function countSheetRows($sheet_name = '')
+	public function countSheetRows($sheet_name = '')
 	{
-        $sheet_name = $sheet_name ?: $this->current_sheet;
+		$sheet_name = $sheet_name ?: $this->current_sheet;
 
 		return array_key_exists($sheet_name, $this->sheets)
-            ? $this->sheets[$sheet_name]->row_count
-            : 0;
+			? $this->sheets[$sheet_name]->row_count
+			: 0;
 	}
 
 	protected function finalizeSheet($sheet_name)
@@ -472,7 +474,7 @@ class XLSXWriter
 		$file->write('</fills>');
 
 		$file->write('<borders count="'.(count($borders)).'">');
-        $file->write(    '<border diagonalDown="false" diagonalUp="false"><left/><right/><top/><bottom/><diagonal/></border>');
+		$file->write(    '<border diagonalDown="false" diagonalUp="false"><left/><right/><top/><bottom/><diagonal/></border>');
 		foreach($borders as $border) {
 			if (!empty($border)) { //fonts have an empty placeholder in the array to offset the static xml entry above
 				$pieces = explode(",", $border);
@@ -663,11 +665,24 @@ class XLSXWriter
 		return str_replace($all_invalids, "", $filename);
 	}
 	//------------------------------------------------------------------
+	public static function allowWriteEscapeSymbols()
+	{
+		self::$write_escape_symbols = true;
+	}
+	public static function disallowWriteEscapeSymbols()
+	{
+		self::$write_escape_symbols = false;
+	}
+	//------------------------------------------------------------------
 	public static function xmlspecialchars($val)
 	{
 		//note, badchars includes \t\n\r \x09\x0a\x0d
-		static $badchars = "\x00\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0a\x0b\x0c\x0d\x0e\x0f\x10\x11\x12\x13\x14\x15\x16\x17\x18\x19\x1a\x1b\x1c\x1d\x1e\x1f\x7f";
-		static $goodchars = "                                 ";
+		static $badchars = "\x00\x01\x02\x03\x04\x05\x06\x07\x08\x0b\x0c\x0e\x0f\x10\x11\x12\x13\x14\x15\x16\x17\x18\x19\x1a\x1b\x1c\x1d\x1e\x1f\x7f";
+		static $goodchars = "                              ";
+		if (!self::$write_escape_symbols) {
+			$badchars .= "\x09\x0a\x0d";
+			$goodchars .= "   ";
+		}
 		return strtr(htmlspecialchars($val, ENT_QUOTES | ENT_XML1), $badchars, $goodchars);//strtr appears to be faster than str_replace
 	}
 	//------------------------------------------------------------------
