@@ -14,7 +14,7 @@ $rows = array(
     array(100, 200, 300, 400, 500),
     array(110, 210, 310, 410, 510),
 );
-$writer->writeSheetHeader($sheet1, $header, $suppress_header_row = true);
+$writer->writeSheetHeader($sheet1, $header, $col_options = ['suppress_row'=>true] );
 foreach($rows as $row)
 	$writer->writeSheetRow($sheet1, $row);
 $writer->markMergedCell($sheet1, $start_row=0, $start_col=0, $end_row=0, $end_col=4);
