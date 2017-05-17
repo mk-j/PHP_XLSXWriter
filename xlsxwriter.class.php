@@ -20,6 +20,8 @@ class XLSXWriter
 
 	protected $current_sheet = '';
 
+	private static $write_escape_symbols = false;
+
 	public function __construct()
 	{
 		if(!ini_get('date.timezone'))
@@ -202,9 +204,10 @@ class XLSXWriter
 
 		self::initializeSheet($sheet_name);
 		$sheet = &$this->sheets[$sheet_name];
-		if (empty($sheet->columns))
-		{
+		if (empty($sheet->columns)) {
 			$sheet->columns = $this->initializeColumnTypes( array_fill($from=0, $until=count($row), 'GENERAL') );//will map to n_auto
+		} elseif (count($sheet->columns) < count($row)) {
+			$sheet->columns = array_merge($sheet->columns, $this->initializeColumnTypes(array_fill($from = 0, $until = count($row), 'GENERAL')));
 		}
 
 		$sheet->file_writer->write('<row collapsed="false" customFormat="false" customHeight="false" hidden="false" ht="12.1" outlineLevel="0" r="' . ($sheet->row_count + 1) . '">');
@@ -219,6 +222,33 @@ class XLSXWriter
 		$sheet->file_writer->write('</row>');
 		$sheet->row_count++;
 		$this->current_sheet = $sheet_name;
+	}
+
+	public function writeSheetEmptyRow($sheet_name)
+	{
+		if (empty($sheet_name)) {
+			return;
+		}
+
+		$this->initializeSheet($sheet_name);
+		$sheet = &$this->sheets[$sheet_name];
+		if (empty($sheet->columns)) {
+			$sheet->columns = $this->initializeColumnTypes(array_fill($from = 0, $until = count($row), 'GENERAL'));//will map to n_auto
+		}
+
+		$sheet->file_writer->write('<row collapsed="false" customFormat="false" customHeight="false" hidden="false" ht="12.1" outlineLevel="0" r="' . ($sheet->row_count + 1) . '">');
+		$sheet->file_writer->write('</row>');
+		$sheet->row_count++;
+		$this->current_sheet = $sheet_name;
+	}
+
+	public function countSheetRows($sheet_name = '')
+	{
+		$sheet_name = $sheet_name ?: $this->current_sheet;
+
+		return array_key_exists($sheet_name, $this->sheets)
+			? $this->sheets[$sheet_name]->row_count
+			: 0;
 	}
 
 	protected function finalizeSheet($sheet_name)
@@ -350,6 +380,11 @@ class XLSXWriter
 				$style_indexes[$i]['alignment'] = true;
 				$style_indexes[$i]['valign'] = $style['valign'];
 			}
+			if (isset($style['wrap_text']))
+			{
+				$style_indexes[$i]['alignment'] = true;
+				$style_indexes[$i]['wrap_text'] = $style['wrap_text'];
+			}
 
 			$font = $default_font;
 			if (isset($style['font-size']))
@@ -391,7 +426,7 @@ class XLSXWriter
 		$fonts = $r['fonts'];
 		$borders = $r['borders'];
 		$style_indexes = $r['styles'];
-		
+
 		$temporary_filename = $this->tempFilename();
 		$file = new XLSXWriter_BuffererWriter($temporary_filename);
 		$file->write('<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'."\n");
@@ -437,9 +472,9 @@ class XLSXWriter
 			}
 		}
 		$file->write('</fills>');
-		
+
 		$file->write('<borders count="'.(count($borders)).'">');
-        $file->write(    '<border diagonalDown="false" diagonalUp="false"><left/><right/><top/><bottom/><diagonal/></border>');
+		$file->write(    '<border diagonalDown="false" diagonalUp="false"><left/><right/><top/><bottom/><diagonal/></border>');
 		foreach($borders as $border) {
 			if (!empty($border)) { //fonts have an empty placeholder in the array to offset the static xml entry above
 				$pieces = explode(",", $border);
@@ -453,7 +488,7 @@ class XLSXWriter
 			}
 		}
 		$file->write('</borders>');
-		
+
 		$file->write('<cellStyleXfs count="20">');
 		$file->write(		'<xf applyAlignment="true" applyBorder="true" applyFont="true" applyProtection="true" borderId="0" fillId="0" fontId="0" numFmtId="164">');
 		$file->write(		'<alignment horizontal="general" indent="0" shrinkToFit="false" textRotation="0" vertical="bottom" wrapText="false"/>');
@@ -479,7 +514,7 @@ class XLSXWriter
 		$file->write(		'<xf applyAlignment="false" applyBorder="false" applyFont="true" applyProtection="false" borderId="0" fillId="0" fontId="1" numFmtId="42"/>');
 		$file->write(		'<xf applyAlignment="false" applyBorder="false" applyFont="true" applyProtection="false" borderId="0" fillId="0" fontId="1" numFmtId="9"/>');
 		$file->write('</cellStyleXfs>');
-		
+
 		$file->write('<cellXfs count="'.(count($style_indexes)).'">');
 		//$file->write(		'<xf applyAlignment="false" applyBorder="false" applyFont="false" applyProtection="false" borderId="0" fillId="0" fontId="0" numFmtId="164" xfId="0"/>');
 		//$file->write(		'<xf applyAlignment="false" applyBorder="false" applyFont="false" applyProtection="false" borderId="0" fillId="0" fontId="0" numFmtId="165" xfId="0"/>');
@@ -488,6 +523,7 @@ class XLSXWriter
 		foreach($style_indexes as $v)
 		{
 			$applyAlignment = isset($v['alignment']) ? 'true' : 'false';
+			$wrapText = isset($v['wrap_text']) ? 'true' : 'false';
 			$horizAlignment = isset($v['halign']) ? $v['halign'] : 'general';
 			$vertAlignment = isset($v['valign']) ? $v['valign'] : 'bottom';
 			$applyBorder = isset($v['border_idx']) ? 'true' : 'false';
@@ -497,7 +533,7 @@ class XLSXWriter
 			$fontIdx = isset($v['font_idx']) ? intval($v['font_idx']) : 0;
 			//$file->write('<xf applyAlignment="'.$applyAlignment.'" applyBorder="'.$applyBorder.'" applyFont="'.$applyFont.'" applyProtection="false" borderId="'.($borderIdx).'" fillId="'.($fillIdx).'" fontId="'.($fontIdx).'" numFmtId="'.(164+$v['num_fmt_idx']).'" xfId="0"/>');
 			$file->write('<xf applyAlignment="'.$applyAlignment.'" applyBorder="'.$applyBorder.'" applyFont="'.$applyFont.'" applyProtection="false" borderId="'.($borderIdx).'" fillId="'.($fillIdx).'" fontId="'.($fontIdx).'" numFmtId="'.(164+$v['num_fmt_idx']).'" xfId="0">');
-			$file->write('	<alignment horizontal="'.$horizAlignment.'" vertical="'.$vertAlignment.'" textRotation="0" wrapText="false" indent="0" shrinkToFit="false"/>');
+			$file->write('	<alignment horizontal="'.$horizAlignment.'" vertical="'.$vertAlignment.'" textRotation="0" wrapText="'.$wrapText.'" indent="0" shrinkToFit="false"/>');
 			$file->write('	<protection locked="true" hidden="false"/>');
 			$file->write('</xf>');
 		}
@@ -629,11 +665,24 @@ class XLSXWriter
 		return str_replace($all_invalids, "", $filename);
 	}
 	//------------------------------------------------------------------
+	public static function allowWriteEscapeSymbols()
+	{
+		self::$write_escape_symbols = true;
+	}
+	public static function disallowWriteEscapeSymbols()
+	{
+		self::$write_escape_symbols = false;
+	}
+	//------------------------------------------------------------------
 	public static function xmlspecialchars($val)
 	{
 		//note, badchars includes \t\n\r \x09\x0a\x0d
-		static $badchars = "\x00\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0a\x0b\x0c\x0d\x0e\x0f\x10\x11\x12\x13\x14\x15\x16\x17\x18\x19\x1a\x1b\x1c\x1d\x1e\x1f\x7f";
-		static $goodchars = "                                 ";
+		static $badchars = "\x00\x01\x02\x03\x04\x05\x06\x07\x08\x0b\x0c\x0e\x0f\x10\x11\x12\x13\x14\x15\x16\x17\x18\x19\x1a\x1b\x1c\x1d\x1e\x1f\x7f";
+		static $goodchars = "                              ";
+		if (!self::$write_escape_symbols) {
+			$badchars .= "\x09\x0a\x0d";
+			$goodchars .= "   ";
+		}
 		return strtr(htmlspecialchars($val, ENT_QUOTES | ENT_XML1), $badchars, $goodchars);//strtr appears to be faster than str_replace
 	}
 	//------------------------------------------------------------------
