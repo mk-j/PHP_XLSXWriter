@@ -204,15 +204,14 @@ class XLSXWriter
 
 	public function writeSheetRow($sheet_name, array $row, $style=null)
 	{
-		if (empty($sheet_name) || empty($row))
+		if (empty($sheet_name))
 			return;
 
 		self::initializeSheet($sheet_name);
 		$sheet = &$this->sheets[$sheet_name];
-		if (empty($sheet->columns)) {
-			$sheet->columns = $this->initializeColumnTypes( array_fill($from=0, $until=count($row), 'GENERAL') );//will map to n_auto
-		} elseif (count($sheet->columns) < count($row)) {
-			$sheet->columns = array_merge($sheet->columns, $this->initializeColumnTypes(array_fill($from = 0, $until = count($row), 'GENERAL')));
+		if (count($sheet->columns) < count($row)) { //should initialize properly when $sheet->columns is empty
+			$default_column_types = $this->initializeColumnTypes( array_fill($from=0, $until=count($row), 'GENERAL') );//will map to n_auto
+			$sheet->columns = array_merge((array)$sheet->columns, $default_column_types);
 		}
 
 		$sheet->file_writer->write('<row collapsed="false" customFormat="false" customHeight="false" hidden="false" ht="12.1" outlineLevel="0" r="' . ($sheet->row_count + 1) . '">');
@@ -229,31 +228,10 @@ class XLSXWriter
 		$this->current_sheet = $sheet_name;
 	}
 
-	public function writeSheetEmptyRow($sheet_name)
+	public function countSheetRows($sheet_name = '')
 	{
-		if (empty($sheet_name)) {
-			return;
-		}
-
-		$this->initializeSheet($sheet_name);
-		$sheet = &$this->sheets[$sheet_name];
-		if (empty($sheet->columns)) {
-			$sheet->columns = $this->initializeColumnTypes(array_fill($from = 0, $until = count($row), 'GENERAL'));//will map to n_auto
-		}
-
-		$sheet->file_writer->write('<row collapsed="false" customFormat="false" customHeight="false" hidden="false" ht="12.1" outlineLevel="0" r="' . ($sheet->row_count + 1) . '">');
-		$sheet->file_writer->write('</row>');
-		$sheet->row_count++;
-		$this->current_sheet = $sheet_name;
-	}
-
-    public function countSheetRows($sheet_name = '')
-	{
-        $sheet_name = $sheet_name ?: $this->current_sheet;
-
-		return array_key_exists($sheet_name, $this->sheets)
-            ? $this->sheets[$sheet_name]->row_count
-            : 0;
+		$sheet_name = $sheet_name ?: $this->current_sheet;
+		return array_key_exists($sheet_name, $this->sheets) ? $this->sheets[$sheet_name]->row_count : 0;
 	}
 
 	protected function finalizeSheet($sheet_name)
