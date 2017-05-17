@@ -106,7 +106,7 @@ class XLSXWriter
 		$zip->close();
 	}
 
-	protected function initializeSheet($sheet_name)
+	protected function initializeSheet($sheet_name,$colsWidth)
 	{
 		//if already initialized
 		if ($this->current_sheet==$sheet_name || isset($this->sheets[$sheet_name]))
@@ -143,7 +143,14 @@ class XLSXWriter
 		$sheet->file_writer->write(    '</sheetView>');
 		$sheet->file_writer->write(  '</sheetViews>');
 		$sheet->file_writer->write(  '<cols>');
-		$sheet->file_writer->write(    '<col collapsed="false" hidden="false" max="1025" min="1" style="0" width="11.5"/>');
+		if(empty($colsWidth))
+		    $sheet->file_writer->write(    '<col collapsed="false" hidden="false" max="1025" min="1" style="0" width="11.5"/>');
+		else{
+		    foreach ($colsWidth as $key=>$colWidth){
+		        $nKey = $key+1;
+                $sheet->file_writer->write(    '<col collapsed="false" hidden="false" max="1025" min="'.$nKey.'" style="0" width="'.$colWidth.'"/>');
+            }
+        }
 		$sheet->file_writer->write(  '</cols>');
 		$sheet->file_writer->write(  '<sheetData>');
 	}
@@ -172,12 +179,12 @@ class XLSXWriter
 		return $column_types;
 	}
 
-	public function writeSheetHeader($sheet_name, array $header_types, $suppress_row = false)
+	public function writeSheetHeader($sheet_name, array $header_types, $suppress_row = false,$colsWidth = [])
 	{
 		if (empty($sheet_name) || empty($header_types) || !empty($this->sheets[$sheet_name]))
 			return;
 
-		self::initializeSheet($sheet_name);
+		self::initializeSheet($sheet_name,$colsWidth);
 		$sheet = &$this->sheets[$sheet_name];
 		$sheet->columns = $this->initializeColumnTypes($header_types);
 		if (!$suppress_row)
