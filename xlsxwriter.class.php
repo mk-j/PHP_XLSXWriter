@@ -106,7 +106,7 @@ class XLSXWriter
 		$zip->close();
 	}
 
-	protected function initializeSheet($sheet_name,$colsWidth)
+	protected function initializeSheet($sheet_name, $col_widths=array() )
 	{
 		//if already initialized
 		if ($this->current_sheet==$sheet_name || isset($this->sheets[$sheet_name]))
@@ -143,14 +143,14 @@ class XLSXWriter
 		$sheet->file_writer->write(    '</sheetView>');
 		$sheet->file_writer->write(  '</sheetViews>');
 		$sheet->file_writer->write(  '<cols>');
-		if(empty($colsWidth))
-		    $sheet->file_writer->write(    '<col collapsed="false" hidden="false" max="1025" min="1" style="0" width="11.5"/>');
-		else{
-		    foreach ($colsWidth as $key=>$colWidth){
-		        $nKey = $key+1;
-                $sheet->file_writer->write(    '<col collapsed="false" hidden="false" max="1025" min="'.$nKey.'" style="0" width="'.$colWidth.'"/>');
-            }
-        }
+		$i=0;
+		if (!empty($col_widths)) {
+			foreach($col_widths as $column_width) {
+				$sheet->file_writer->write(  '<col collapsed="false" hidden="false" max="'.($i+1).'" min="'.($i+1).'" style="0" width="'.floatval($column_width).'"/>');
+				$i++;
+			}
+		}
+		$sheet->file_writer->write(  '<col collapsed="false" hidden="false" max="1024" min="'.($i+1).'" style="0" width="11.5"/>');
 		$sheet->file_writer->write(  '</cols>');
 		$sheet->file_writer->write(  '<sheetData>');
 	}
@@ -179,12 +179,17 @@ class XLSXWriter
 		return $column_types;
 	}
 
-	public function writeSheetHeader($sheet_name, array $header_types, $suppress_row = false,$colsWidth = [])
+	public function writeSheetHeader($sheet_name, array $header_types, $col_options = null)
 	{
 		if (empty($sheet_name) || empty($header_types) || !empty($this->sheets[$sheet_name]))
 			return;
-
-		self::initializeSheet($sheet_name,$colsWidth);
+		$suppress_row = isset($col_options['suppress_row']) ? boolval($col_options['suppress_row']) : false;
+		if (is_bool($col_options))
+		{
+			self::log( "Warning! passing $suppress_row=false|true to writeSheetHeader() is deprecated, this will be removed in a future version." );
+			$suppress_row = boolval($col_options);
+		}
+		self::initializeSheet($sheet_name,$col_options['widths']);
 		$sheet = &$this->sheets[$sheet_name];
 		$sheet->columns = $this->initializeColumnTypes($header_types);
 		if (!$suppress_row)
@@ -202,19 +207,32 @@ class XLSXWriter
 		$this->current_sheet = $sheet_name;
 	}
 
-	public function writeSheetRow($sheet_name, array $row, $style=null)
+	public function writeSheetRow($sheet_name, array $row, $row_options=null)
 	{
 		if (empty($sheet_name))
 			return;
 
 		self::initializeSheet($sheet_name);
 		$sheet = &$this->sheets[$sheet_name];
-		if (count($sheet->columns) < count($row)) { //should initialize properly when $sheet->columns is empty
+		if (count($sheet->columns) < count($row)) {
 			$default_column_types = $this->initializeColumnTypes( array_fill($from=0, $until=count($row), 'GENERAL') );//will map to n_auto
 			$sheet->columns = array_merge((array)$sheet->columns, $default_column_types);
 		}
+		
+		if (!empty($row_options))
+		{
+			$ht = isset($row_options['height']) ? floatval($row_options['height']) : 12.1;
+			$customHt = isset($row_options['height']) ? true : false;
+			$hidden = isset($row_options['hidden']) ? boolval($row_options['hidden']) : false;
+			$collapsed = isset($row_options['collapsed']) ? boolval($row_options['collapsed']) : false;
+			$sheet->file_writer->write('<row collapsed="'.($collapsed).'" customFormat="false" customHeight="'.($customHt).'" hidden="'.($hidden).'" ht="'.($ht).'" outlineLevel="0" r="' . ($sheet->row_count + 1) . '">');
+		}
+		else
+		{
+			$sheet->file_writer->write('<row collapsed="false" customFormat="false" customHeight="false" hidden="false" ht="12.1" outlineLevel="0" r="' . ($sheet->row_count + 1) . '">');
+		}
 
-		$sheet->file_writer->write('<row collapsed="false" customFormat="false" customHeight="false" hidden="false" ht="12.1" outlineLevel="0" r="' . ($sheet->row_count + 1) . '">');
+		$style = &$row_options;
 		$c=0;
 		foreach ($row as $v) {
 			$number_format = $sheet->columns[$c]['number_format'];
@@ -506,7 +524,7 @@ class XLSXWriter
 		foreach($style_indexes as $v)
 		{
 			$applyAlignment = isset($v['alignment']) ? 'true' : 'false';
-			$wrapText = isset($v['wrap_text']) ? 'true' : 'false';
+			$wrapText = isset($v['wrap_text']) ? boolval($v['wrap_text']) : 'false';
 			$horizAlignment = isset($v['halign']) ? $v['halign'] : 'general';
 			$vertAlignment = isset($v['valign']) ? $v['valign'] : 'bottom';
 			$applyBorder = isset($v['border_idx']) ? 'true' : 'false';
