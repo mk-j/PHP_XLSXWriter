@@ -183,13 +183,16 @@ class XLSXWriter
 	{
 		if (empty($sheet_name) || empty($header_types) || !empty($this->sheets[$sheet_name]))
 			return;
+
 		$suppress_row = isset($col_options['suppress_row']) ? boolval($col_options['suppress_row']) : false;
 		if (is_bool($col_options))
 		{
 			self::log( "Warning! passing $suppress_row=false|true to writeSheetHeader() is deprecated, this will be removed in a future version." );
 			$suppress_row = boolval($col_options);
 		}
-		self::initializeSheet($sheet_name,$col_options['widths']);
+
+		$col_widths = isset($col_options['widths']) ? (array)$col_options['widths'] : array();
+		self::initializeSheet($sheet_name, $col_widths);
 		$sheet = &$this->sheets[$sheet_name];
 		$sheet->columns = $this->initializeColumnTypes($header_types);
 		if (!$suppress_row)
