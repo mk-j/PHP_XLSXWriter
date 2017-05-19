@@ -190,6 +190,7 @@ class XLSXWriter
 			self::log( "Warning! passing $suppress_row=false|true to writeSheetHeader() is deprecated, this will be removed in a future version." );
 			$suppress_row = boolval($col_options);
 		}
+    $style = &$col_options;
 
 		$col_widths = isset($col_options['widths']) ? (array)$col_options['widths'] : array();
 		self::initializeSheet($sheet_name, $col_widths);
@@ -197,11 +198,11 @@ class XLSXWriter
 		$sheet->columns = $this->initializeColumnTypes($header_types);
 		if (!$suppress_row)
 		{
-			$header_row = array_keys($header_types);
+			$header_row = array_keys($header_types);      
 
 			$sheet->file_writer->write('<row collapsed="false" customFormat="false" customHeight="false" hidden="false" ht="12.1" outlineLevel="0" r="' . (1) . '">');
 			foreach ($header_row as $c => $v) {
-				$cell_style_idx = $this->addCellStyle( 'GENERAL', $style_string=null );
+				$cell_style_idx = empty($style) ? $sheet->columns[$c]['default_cell_style'] : $this->addCellStyle( 'GENERAL', json_encode(isset($style[0]) ? $style[$c] : $style) );
 				$this->writeCell($sheet->file_writer, 0, $c, $v, $number_format_type='n_string', $cell_style_idx);
 			}
 			$sheet->file_writer->write('</row>');
