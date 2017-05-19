@@ -10,21 +10,10 @@
         "classmap": ["xlsxwriter.class.php"]
     },
     "require-dev": {
-        "xrstf/composer-php52": "1.*",
         "phpunit/phpunit": "4.3.*"
     },
     "require": {
-        "php": ">=5.2.1"
-    },
-    "scripts": {
-        "post-install-cmd": [
-            "xrstf\\Composer52\\Generator::onPostInstallCmd"
-        ],
-        "post-update-cmd": [
-            "xrstf\\Composer52\\Generator::onPostInstallCmd"
-        ],
-        "post-autoload-dump": [
-            "xrstf\\Composer52\\Generator::onPostInstallCmd"
-        ]
+        "php": ">=5.2.1",
+        "ext-zip": "*"
     }
 }

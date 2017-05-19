@@ -3,8 +3,6 @@
  * @license MIT License
  * */
 
-if (!class_exists('ZipArchive')) { throw new Exception('ZipArchive not found'); }
-
 class XLSXWriter
 {
 	//http://www.ecma-international.org/publications/standards/Ecma-376.htm
@@ -108,7 +106,7 @@ class XLSXWriter
 		$zip->close();
 	}
 
-	protected function initializeSheet($sheet_name)
+	protected function initializeSheet($sheet_name, $col_widths=array() )
 	{
 		//if already initialized
 		if ($this->current_sheet==$sheet_name || isset($this->sheets[$sheet_name]))
@@ -145,7 +143,14 @@ class XLSXWriter
 		$sheet->file_writer->write(    '</sheetView>');
 		$sheet->file_writer->write(  '</sheetViews>');
 		$sheet->file_writer->write(  '<cols>');
-		$sheet->file_writer->write(    '<col collapsed="false" hidden="false" max="1025" min="1" style="0" width="11.5"/>');
+		$i=0;
+		if (!empty($col_widths)) {
+			foreach($col_widths as $column_width) {
+				$sheet->file_writer->write(  '<col collapsed="false" hidden="false" max="'.($i+1).'" min="'.($i+1).'" style="0" width="'.floatval($column_width).'"/>');
+				$i++;
+			}
+		}
+		$sheet->file_writer->write(  '<col collapsed="false" hidden="false" max="1024" min="'.($i+1).'" style="0" width="11.5"/>');
 		$sheet->file_writer->write(  '</cols>');
 		$sheet->file_writer->write(  '<sheetData>');
 	}
@@ -174,17 +179,26 @@ class XLSXWriter
 		return $column_types;
 	}
 
-	public function writeSheetHeader($sheet_name, array $header_types, $suppress_row = false, $style = null)
+	public function writeSheetHeader($sheet_name, array $header_types, $col_options = null)
 	{
 		if (empty($sheet_name) || empty($header_types) || !empty($this->sheets[$sheet_name]))
 			return;
 
-		self::initializeSheet($sheet_name);
+		$suppress_row = isset($col_options['suppress_row']) ? boolval($col_options['suppress_row']) : false;
+		if (is_bool($col_options))
+		{
+			self::log( "Warning! passing $suppress_row=false|true to writeSheetHeader() is deprecated, this will be removed in a future version." );
+			$suppress_row = boolval($col_options);
+		}
+    $style = &$col_options;
+
+		$col_widths = isset($col_options['widths']) ? (array)$col_options['widths'] : array();
+		self::initializeSheet($sheet_name, $col_widths);
 		$sheet = &$this->sheets[$sheet_name];
 		$sheet->columns = $this->initializeColumnTypes($header_types);
 		if (!$suppress_row)
 		{
-			$header_row = array_keys($header_types);
+			$header_row = array_keys($header_types);      
 
 			$sheet->file_writer->write('<row collapsed="false" customFormat="false" customHeight="false" hidden="false" ht="12.1" outlineLevel="0" r="' . (1) . '">');
 			foreach ($header_row as $c => $v) {
@@ -197,19 +211,32 @@ class XLSXWriter
 		$this->current_sheet = $sheet_name;
 	}
 
-	public function writeSheetRow($sheet_name, array $row, $style=null)
+	public function writeSheetRow($sheet_name, array $row, $row_options=null)
 	{
-		if (empty($sheet_name) || empty($row))
+		if (empty($sheet_name))
 			return;
 
 		self::initializeSheet($sheet_name);
 		$sheet = &$this->sheets[$sheet_name];
-		if (empty($sheet->columns))
+		if (count($sheet->columns) < count($row)) {
+			$default_column_types = $this->initializeColumnTypes( array_fill($from=0, $until=count($row), 'GENERAL') );//will map to n_auto
+			$sheet->columns = array_merge((array)$sheet->columns, $default_column_types);
+		}
+		
+		if (!empty($row_options))
 		{
-			$sheet->columns = $this->initializeColumnTypes( array_fill($from=0, $until=count($row), 'GENERAL') );//will map to n_auto
+			$ht = isset($row_options['height']) ? floatval($row_options['height']) : 12.1;
+			$customHt = isset($row_options['height']) ? true : false;
+			$hidden = isset($row_options['hidden']) ? boolval($row_options['hidden']) : false;
+			$collapsed = isset($row_options['collapsed']) ? boolval($row_options['collapsed']) : false;
+			$sheet->file_writer->write('<row collapsed="'.($collapsed).'" customFormat="false" customHeight="'.($customHt).'" hidden="'.($hidden).'" ht="'.($ht).'" outlineLevel="0" r="' . ($sheet->row_count + 1) . '">');
+		}
+		else
+		{
+			$sheet->file_writer->write('<row collapsed="false" customFormat="false" customHeight="false" hidden="false" ht="12.1" outlineLevel="0" r="' . ($sheet->row_count + 1) . '">');
 		}
 
-		$sheet->file_writer->write('<row collapsed="false" customFormat="false" customHeight="false" hidden="false" ht="12.1" outlineLevel="0" r="' . ($sheet->row_count + 1) . '">');
+		$style = &$row_options;
 		$c=0;
 		foreach ($row as $v) {
 			$number_format = $sheet->columns[$c]['number_format'];
@@ -221,6 +248,12 @@ class XLSXWriter
 		$sheet->file_writer->write('</row>');
 		$sheet->row_count++;
 		$this->current_sheet = $sheet_name;
+	}
+
+	public function countSheetRows($sheet_name = '')
+	{
+		$sheet_name = $sheet_name ?: $this->current_sheet;
+		return array_key_exists($sheet_name, $this->sheets) ? $this->sheets[$sheet_name]->row_count : 0;
 	}
 
 	protected function finalizeSheet($sheet_name)
@@ -352,6 +385,11 @@ class XLSXWriter
 				$style_indexes[$i]['alignment'] = true;
 				$style_indexes[$i]['valign'] = $style['valign'];
 			}
+			if (isset($style['wrap_text']))
+			{
+				$style_indexes[$i]['alignment'] = true;
+				$style_indexes[$i]['wrap_text'] = $style['wrap_text'];
+			}
 
 			$font = $default_font;
 			if (isset($style['font-size']))
@@ -393,7 +431,7 @@ class XLSXWriter
 		$fonts = $r['fonts'];
 		$borders = $r['borders'];
 		$style_indexes = $r['styles'];
-		
+
 		$temporary_filename = $this->tempFilename();
 		$file = new XLSXWriter_BuffererWriter($temporary_filename);
 		$file->write('<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'."\n");
@@ -439,7 +477,7 @@ class XLSXWriter
 			}
 		}
 		$file->write('</fills>');
-		
+
 		$file->write('<borders count="'.(count($borders)).'">');
         $file->write(    '<border diagonalDown="false" diagonalUp="false"><left/><right/><top/><bottom/><diagonal/></border>');
 		foreach($borders as $border) {
@@ -455,7 +493,7 @@ class XLSXWriter
 			}
 		}
 		$file->write('</borders>');
-		
+
 		$file->write('<cellStyleXfs count="20">');
 		$file->write(		'<xf applyAlignment="true" applyBorder="true" applyFont="true" applyProtection="true" borderId="0" fillId="0" fontId="0" numFmtId="164">');
 		$file->write(		'<alignment horizontal="general" indent="0" shrinkToFit="false" textRotation="0" vertical="bottom" wrapText="false"/>');
@@ -481,7 +519,7 @@ class XLSXWriter
 		$file->write(		'<xf applyAlignment="false" applyBorder="false" applyFont="true" applyProtection="false" borderId="0" fillId="0" fontId="1" numFmtId="42"/>');
 		$file->write(		'<xf applyAlignment="false" applyBorder="false" applyFont="true" applyProtection="false" borderId="0" fillId="0" fontId="1" numFmtId="9"/>');
 		$file->write('</cellStyleXfs>');
-		
+
 		$file->write('<cellXfs count="'.(count($style_indexes)).'">');
 		//$file->write(		'<xf applyAlignment="false" applyBorder="false" applyFont="false" applyProtection="false" borderId="0" fillId="0" fontId="0" numFmtId="164" xfId="0"/>');
 		//$file->write(		'<xf applyAlignment="false" applyBorder="false" applyFont="false" applyProtection="false" borderId="0" fillId="0" fontId="0" numFmtId="165" xfId="0"/>');
@@ -490,6 +528,7 @@ class XLSXWriter
 		foreach($style_indexes as $v)
 		{
 			$applyAlignment = isset($v['alignment']) ? 'true' : 'false';
+			$wrapText = isset($v['wrap_text']) ? boolval($v['wrap_text']) : 'false';
 			$horizAlignment = isset($v['halign']) ? $v['halign'] : 'general';
 			$vertAlignment = isset($v['valign']) ? $v['valign'] : 'bottom';
 			$applyBorder = isset($v['border_idx']) ? 'true' : 'false';
@@ -499,7 +538,7 @@ class XLSXWriter
 			$fontIdx = isset($v['font_idx']) ? intval($v['font_idx']) : 0;
 			//$file->write('<xf applyAlignment="'.$applyAlignment.'" applyBorder="'.$applyBorder.'" applyFont="'.$applyFont.'" applyProtection="false" borderId="'.($borderIdx).'" fillId="'.($fillIdx).'" fontId="'.($fontIdx).'" numFmtId="'.(164+$v['num_fmt_idx']).'" xfId="0"/>');
 			$file->write('<xf applyAlignment="'.$applyAlignment.'" applyBorder="'.$applyBorder.'" applyFont="'.$applyFont.'" applyProtection="false" borderId="'.($borderIdx).'" fillId="'.($fillIdx).'" fontId="'.($fontIdx).'" numFmtId="'.(164+$v['num_fmt_idx']).'" xfId="0">');
-			$file->write('	<alignment horizontal="'.$horizAlignment.'" vertical="'.$vertAlignment.'" textRotation="0" wrapText="false" indent="0" shrinkToFit="false"/>');
+			$file->write('	<alignment horizontal="'.$horizAlignment.'" vertical="'.$vertAlignment.'" textRotation="0" wrapText="'.$wrapText.'" indent="0" shrinkToFit="false"/>');
 			$file->write('	<protection locked="true" hidden="false"/>');
 			$file->write('</xf>');
 		}
@@ -560,6 +599,7 @@ class XLSXWriter
 		$workbook_xml.='<bookViews><workbookView activeTab="0" firstSheet="0" showHorizontalScroll="true" showSheetTabs="true" showVerticalScroll="true" tabRatio="212" windowHeight="8192" windowWidth="16384" xWindow="0" yWindow="0"/></bookViews>';
 		$workbook_xml.='<sheets>';
 		foreach($this->sheets as $sheet_name=>$sheet) {
+			$sheetname = self::sanitize_sheetname($this->sheetname);
 			$workbook_xml.='<sheet name="'.self::xmlspecialchars($sheet->sheetname).'" sheetId="'.($i+1).'" state="visible" r:id="rId'.($i+2).'"/>';
 			$i++;
 		}
@@ -629,6 +669,16 @@ class XLSXWriter
 		$invalid_chars = array('<', '>', '?', '"', ':', '|', '\\', '/', '*', '&');
 		$all_invalids = array_merge($nonprinting,$invalid_chars);
 		return str_replace($all_invalids, "", $filename);
+	}
+	//------------------------------------------------------------------
+	public static function sanitize_sheetname($sheetname) 
+	{
+		static $badchars  = '\\/?*:[]';
+		static $goodchars = '        ';
+		$sheetname = strtr($sheetname, $badchars, $goodchars);
+		$sheetname = substr($sheetname, 0, 31);
+		$sheetname = trim(trim(trim($sheetname),"'"));//trim before and after trimming single quotes
+		return !empty($sheetname) ? $sheetname : 'Sheet'.((rand()%900)+100);
 	}
 	//------------------------------------------------------------------
 	public static function xmlspecialchars($val)
@@ -717,7 +767,7 @@ class XLSXWriter
 		{
 			list($junk,$year,$month,$day) = $matches;
 		}
-		if (preg_match("/(\d{2}):(\d{2}):(\d{2})/", $date_time, $matches))
+		if (preg_match("/(\d+):(\d{2}):(\d{2})/", $date_time, $matches))
 		{
 			list($junk,$hour,$min,$sec) = $matches;
 			$seconds = ( $hour * 60 * 60 + $min * 60 + $sec ) / ( 24 * 60 * 60 );
