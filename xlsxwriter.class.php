@@ -598,6 +598,7 @@ class XLSXWriter
 		$workbook_xml.='<bookViews><workbookView activeTab="0" firstSheet="0" showHorizontalScroll="true" showSheetTabs="true" showVerticalScroll="true" tabRatio="212" windowHeight="8192" windowWidth="16384" xWindow="0" yWindow="0"/></bookViews>';
 		$workbook_xml.='<sheets>';
 		foreach($this->sheets as $sheet_name=>$sheet) {
+			$sheetname = self::sanitize_sheetname($this->sheetname);
 			$workbook_xml.='<sheet name="'.self::xmlspecialchars($sheet->sheetname).'" sheetId="'.($i+1).'" state="visible" r:id="rId'.($i+2).'"/>';
 			$i++;
 		}
@@ -667,6 +668,16 @@ class XLSXWriter
 		$invalid_chars = array('<', '>', '?', '"', ':', '|', '\\', '/', '*', '&');
 		$all_invalids = array_merge($nonprinting,$invalid_chars);
 		return str_replace($all_invalids, "", $filename);
+	}
+	//------------------------------------------------------------------
+	public static function sanitize_sheetname($sheetname) 
+	{
+		static $badchars  = '\\/?*:[]';
+		static $goodchars = '        ';
+		$sheetname = strtr($sheetname, $badchars, $goodchars);
+		$sheetname = substr($sheetname, 0, 31);
+		$sheetname = trim(trim(trim($sheetname),"'"));//trim before and after trimming single quotes
+		return !empty($sheetname) ? $sheetname : 'Sheet'.((rand()%900)+100);
 	}
 	//------------------------------------------------------------------
 	public static function xmlspecialchars($val)
