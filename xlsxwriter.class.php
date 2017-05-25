@@ -142,7 +142,15 @@ class XLSXWriter
 			return;
 		}
 		if ($format == 'csv') {
-			$this->writeCSVLine($header_types, true, $delimiter);
+			if (!empty($subheader)) {
+				$return = '';
+				$return .= $this->writeCSVLine([' '], NULL, $delimiter);
+				$return .= $this->writeCSVLine([$subheader], NULL, $delimiter);
+				$return .= $this->writeCSVLine([' '], NULL, $delimiter);
+				$return .= $this->writeCSVLine($header_types, true, $delimiter);
+				return $return;
+			}
+			return $this->writeCSVLine($header_types, true, $delimiter);
 		}
 		if (!empty($subheader)) {
 			$this->writeSheetRow($sheet_name, ['   '], $format, $delimiter);
@@ -172,7 +180,7 @@ class XLSXWriter
 			return;
 		}
 		if ($format == 'csv') {
-			$this->writeCSVLine($row, NULL, $delimiter);
+			return $this->writeCSVLine($row, NULL, $delimiter);
 		}
 
 		self::initializeSheet($sheet_name);
@@ -220,8 +228,7 @@ class XLSXWriter
 		$sheet->finalized=true;
 	}
 
-	public function writeCSV(array $data, array $header_types=array(), $delimiter = ';')
-	{
+	public function writeCSV(array $data, array $header_types=array(), $delimiter = ';') {
 		$header_text = array_keys($header_types);
 
 		$output = '';
