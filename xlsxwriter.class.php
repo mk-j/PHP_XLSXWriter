@@ -137,12 +137,20 @@ class XLSXWriter
 		$sheet->file_writer->write(  '<sheetData>');
 	}
 
-	public function writeSheetHeader($sheet_name, array $header_types, $format = 'xlsx', $delimiter = ';') {
+	public function writeSheetHeader($sheet_name, array $header_types, $format = 'xlsx', $delimiter = ';', $subheader = NULL) {
 		if (empty($sheet_name) || empty($header_types) || !empty($this->sheets[$sheet_name])) {
 			return;
 		}
 		if ($format == 'csv') {
 			$this->writeCSVLine($header_types, true, $delimiter);
+		}
+		if (!empty($subheader)) {
+			$this->writeSheetRow($sheet_name, ['   '], $format, $delimiter);
+			$this->writeSheetRow($sheet_name, [$subheader], $format, $delimiter);
+			$this->writeSheetRow($sheet_name, ['   '], $format, $delimiter);
+			$start = 3;
+		} else {
+			$start = 0;
 		}
 
 		self::initializeSheet($sheet_name);
@@ -150,9 +158,9 @@ class XLSXWriter
 		$sheet->cell_formats = array_values($header_types);
 		$header_row = array_keys($header_types);
 
-		$sheet->file_writer->write('<row collapsed="false" customFormat="false" customHeight="false" hidden="false" ht="12.1" outlineLevel="0" r="' . (1) . '">');
+		$sheet->file_writer->write('<row collapsed="false" customFormat="false" customHeight="false" hidden="false" ht="12.1" outlineLevel="0" r="' . ($start + 1) . '">');
 		foreach ($header_row as $k => $v) {
-			$this->writeCell($sheet->file_writer, 0, $k, $v, 'blackheader');
+			$this->writeCell($sheet->file_writer, $start, $k, $v, 'blackheader');
 		}
 		$sheet->file_writer->write('</row>');
 		$sheet->row_count++;
