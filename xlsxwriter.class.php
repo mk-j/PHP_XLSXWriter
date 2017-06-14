@@ -599,8 +599,8 @@ class XLSXWriter
 		$workbook_xml.='<bookViews><workbookView activeTab="0" firstSheet="0" showHorizontalScroll="true" showSheetTabs="true" showVerticalScroll="true" tabRatio="212" windowHeight="8192" windowWidth="16384" xWindow="0" yWindow="0"/></bookViews>';
 		$workbook_xml.='<sheets>';
 		foreach($this->sheets as $sheet_name=>$sheet) {
-			$sheetname = self::sanitize_sheetname($this->sheetname);
-			$workbook_xml.='<sheet name="'.self::xmlspecialchars($sheet->sheetname).'" sheetId="'.($i+1).'" state="visible" r:id="rId'.($i+2).'"/>';
+			$sheetname = self::sanitize_sheetname($sheet->sheetname);
+			$workbook_xml.='<sheet name="'.self::xmlspecialchars($sheetname).'" sheetId="'.($i+1).'" state="visible" r:id="rId'.($i+2).'"/>';
 			$i++;
 		}
 		$workbook_xml.='</sheets>';
