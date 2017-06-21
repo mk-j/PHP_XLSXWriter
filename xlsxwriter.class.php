@@ -179,6 +179,18 @@ class XLSXWriter
 		return $column_types;
 	}
 
+	public function updateFormat($sheet_name, array $header_types) {
+		if (empty($sheet_name) || empty($header_types))
+			return;
+		if(empty($this->sheets[$sheet_name])) {
+			$this->writeSheetHeader($sheet_name, $header_types, array('suppress_row'=>true));
+			return;
+		}
+		$sheet = &$this->sheets[$sheet_name];
+		$sheet->columns = $this->initializeColumnTypes($header_types);
+		$this->current_sheet = $sheet_name;
+	}
+
 	public function writeSheetHeader($sheet_name, array $header_types, $col_options = null)
 	{
 		if (empty($sheet_name) || empty($header_types) || !empty($this->sheets[$sheet_name]))
