@@ -42,6 +42,17 @@ $writer->writeSheetHeader($sheet4, ["col1"=>"string", "col2"=>"string"], $col_op
 $writer->writeSheetRow($sheet4, array(101,'this text will wrap'    ), $row_options = array('height'=>30,'wrap_text'=>true));
 $writer->writeSheetRow($sheet4, array(201,'this text is hidden'    ), $row_options = array('height'=>30,'hidden'=>true));
 $writer->writeSheetRow($sheet4, array(301,'this text will not wrap'), $row_options = array('height'=>30,'collapsed'=>true));
+
+//----
+$sheet5 = 'update_format';
+$writer->writeSheetHeader($sheet5, ["col1"=>"string", "col2"=>"string"], $col_options = ['widths'=>[10,10],'suppress_row'=>true] );
+$writer->writeSheetRow($sheet5, array('','value'));
+$writer->updateFormat($sheet5, array('string','integer'));
+$writer->writeSheetRow($sheet5, array('yes',40));
+$writer->writeSheetRow($sheet5, array('no',60));
+$writer->updateFormat($sheet5, array('string','0%'));
+$writer->writeSheetRow($sheet5, array('% of yes',40/100));
+
 $writer->writeToFile('xlsx-advanced.xlsx');
 
 
