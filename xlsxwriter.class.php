@@ -312,6 +312,7 @@ class XLSXWriter
 	protected function styleFontIndexes()
 	{
 		static $border_allowed = array('left','right','top','bottom');
+		static $border_style_allowed = array('thin','medium','thick','dashDot','dashDotDot','dashed','dotted','double','hair','mediumDashDot','mediumDashDotDot','mediumDashed','slantDashDot');
 		static $horizontal_allowed = array('general','left','right','justify','center');
 		static $vertical_allowed = array('bottom','center','distributed');
 		$default_font = array('size'=>'10','name'=>'Arial','family'=>'2');
@@ -332,7 +333,17 @@ class XLSXWriter
 				$border_input = explode(",", $style['border']);
 				sort($border_input);
 				$border_value = array_intersect($border_input, $border_allowed);
-				$style_indexes[$i]['border_idx'] = self::add_to_list_get_index($borders, implode(",", $border_value) );
+				if (isset($style['border-style']) && in_array($style['border-style'],$border_style_allowed))
+				{
+					$border_value['style'] = $style['border-style'];
+				}
+				if (isset($style['border-color']) && is_string($style['border-color']) && $style['border-color'][0]=='#')
+				{
+					$v = substr($style['border-color'],1,6);
+					$v = strlen($v)==3 ? $v[0].$v[0].$v[1].$v[1].$v[2].$v[2] : $v;// expand cf0 => ccff00
+					$border_value['color'] = "FF".strtoupper($v);
+				}
+				$style_indexes[$i]['border_idx'] = self::add_to_list_get_index($borders, json_encode($border_value));
 			}
 			if (isset($style['fill']) && is_string($style['fill']) && $style['fill'][0]=='#')
 			{
@@ -442,12 +453,17 @@ class XLSXWriter
         $file->write(    '<border diagonalDown="false" diagonalUp="false"><left/><right/><top/><bottom/><diagonal/></border>');
 		foreach($borders as $border) {
 			if (!empty($border)) { //fonts have an empty placeholder in the array to offset the static xml entry above
-				$pieces = explode(",", $border);
+				$pieces = json_decode($border,true);
+				$border_style = !empty($pieces['style']) ? $pieces['style'] : 'hair';
 				$file->write('<border diagonalDown="false" diagonalUp="false">');
-				$file->write(  '<left'.(in_array('left',$pieces) ? ' style="hair"' : '').'/>');
-				$file->write(  '<right'.(in_array('right',$pieces) ? ' style="hair"' : '').'/>');
-				$file->write(  '<top'.(in_array('top',$pieces) ? ' style="hair"' : '').'/>');
-				$file->write(  '<bottom'.(in_array('bottom',$pieces) ? ' style="hair"' : '').'/>');
+				foreach (array('left', 'right', 'top', 'bottom') as $side)
+				{
+					$file->write('<'.$side.(in_array($side,$pieces) ? ' style="'.$border_style.'"' : '').'>');
+					if (!empty($pieces['color'])) {
+						$file->write('<color rgb="'.strval($pieces['color']).'"/>');
+					}
+					$file->write('</'.$side.'>');
+				}
 				$file->write(  '<diagonal/>');
 				$file->write('</border>');
 			}

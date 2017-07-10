@@ -83,15 +83,17 @@ Simple cell formats map to more advanced cell formats
 
 Basic cell styles have been available since version 0.30
 
-| style      | allowed values |
-| ---------- | ---- |
-| font       | Arial, Times New Roman, Courier New, Comic Sans MS |
-| font-size  | 8,9,10,11,12 ... |
-| font-style | bold, italic, underline, strikethrough or multiple ie: 'bold,italic' |
-| border     | left, right, top, bottom,   or multiple ie: 'top,left' |
-| color      | #RRGGBB, ie: #ff99cc or #f9c |
-| fill       | #RRGGBB, ie: #eeffee or #efe |
-| halign     | general, left, right, justify, center |
-| valign     | bottom, center, distributed |
+| style        | allowed values |
+| ------------ | ---- |
+| font         | Arial, Times New Roman, Courier New, Comic Sans MS |
+| font-size    | 8,9,10,11,12 ... |
+| font-style   | bold, italic, underline, strikethrough or multiple ie: 'bold,italic' |
+| border       | left, right, top, bottom,   or multiple ie: 'top,left' |
+| border-style | thin, medium, thick, dashDot, dashDotDot, dashed, dotted, double, hair, mediumDashDot, mediumDashDotDot, mediumDashed, slantDashDot |
+| border-color | #RRGGBB, ie: #ff99cc or #f9c |
+| color        | #RRGGBB, ie: #ff99cc or #f9c |
+| fill         | #RRGGBB, ie: #eeffee or #efe |
+| halign       | general, left, right, justify, center |
+| valign       | bottom, center, distributed |
 
 
