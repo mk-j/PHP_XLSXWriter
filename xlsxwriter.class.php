@@ -12,6 +12,7 @@ class XLSXWriter
 	const EXCEL_2007_MAX_ROW=1048576;
 	const EXCEL_2007_MAX_COL=16384;
 	//------------------------------------------------------------------
+	protected $title ='Doc Title';
 	protected $author ='Doc Author';
 	protected $sheets = array();
 	protected $temp_files = array();
@@ -33,6 +34,7 @@ class XLSXWriter
 		$this->addCellStyle($number_format='GENERAL', $style_string=null);
 	}
 
+	public function setTitle($title='') { $this->title=$title; }
 	public function setAuthor($author='') { $this->author=$author; }
 	public function setTempDir($tempdir='') { $this->tempdir=$tempdir; }
 
@@ -529,6 +531,7 @@ class XLSXWriter
 		$core_xml.='<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'."\n";
 		$core_xml.='<cp:coreProperties xmlns:cp="http://schemas.openxmlformats.org/package/2006/metadata/core-properties" xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:dcmitype="http://purl.org/dc/dcmitype/" xmlns:dcterms="http://purl.org/dc/terms/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">';
 		$core_xml.='<dcterms:created xsi:type="dcterms:W3CDTF">'.date("Y-m-d\TH:i:s.00\Z").'</dcterms:created>';//$date_time = '2014-10-25T15:54:37.00Z';
+		$core_xml.='<dc:title>'.self::xmlspecialchars($this->title).'</dc:title>';
 		$core_xml.='<dc:creator>'.self::xmlspecialchars($this->author).'</dc:creator>';
 		$core_xml.='<cp:revision>0</cp:revision>';
 		$core_xml.='</cp:coreProperties>';
