@@ -50,7 +50,7 @@ $writer->writeToFile('example.xlsx');
 
 Set document properties:
 ```php
-$keywords = $keywords = array('some','interesting','keywords');
+$keywords = array('some','interesting','keywords');
 
 $writer = new XLSXWriter();
 
