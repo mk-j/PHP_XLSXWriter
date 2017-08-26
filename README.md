@@ -48,6 +48,20 @@ foreach($data as $row)
 $writer->writeToFile('example.xlsx');
 ```
 
+Set document properties:
+```php
+$keywords = $keywords = array('some','interesting','keywords');
+
+$writer = new XLSXWriter();
+
+$writer->setTitle('Some Title');
+$writer->setSubject('Some Subject');
+$writer->setAuthor('Some Author');
+$writer->setCompany('Some Company');
+$writer->setKeywords($keywords);
+$writer->setDescription('Some interesting description');
+```
+
 50000 rows: (1.4s, 0MB memory usage)
 ```php
 include_once("xlsxwriter.class.php");
