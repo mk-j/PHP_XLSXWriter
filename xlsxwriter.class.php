@@ -12,18 +12,18 @@ class XLSXWriter
 	const EXCEL_2007_MAX_ROW=1048576;
 	const EXCEL_2007_MAX_COL=16384;
 	//------------------------------------------------------------------
-	protected $title ='Doc Title';
-	protected $subject ='Doc Subject';
-	protected $author ='Doc Author';
-	protected $company ='Doc Company';
-	protected $description ='Doc Description';
+	protected $title;
+	protected $subject;
+	protected $author;
+	protected $company;
+	protected $description;
+	
+	protected $current_sheet;
 	protected $keywords = array();	
 	protected $sheets = array();
 	protected $temp_files = array();
 	protected $cell_styles = array();
 	protected $number_formats = array();
-
-	protected $current_sheet = '';
 
 	public function __construct()
 	{
