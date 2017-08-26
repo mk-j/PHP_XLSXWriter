@@ -17,9 +17,9 @@ class XLSXWriter
 	protected $author;
 	protected $company;
 	protected $description;
-	
-	protected $current_sheet;
 	protected $keywords = array();	
+	
+	protected $current_sheet;	
 	protected $sheets = array();
 	protected $temp_files = array();
 	protected $cell_styles = array();
