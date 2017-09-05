@@ -297,7 +297,6 @@ class XLSXWriter
 	{
 		if (empty($sheet_name) || $this->sheets[$sheet_name]->finalized)
 			return;
-
 		
 		self::initializeSheet($sheet_name);
 		$sheet = &$this->sheets[$sheet_name];
