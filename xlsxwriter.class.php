@@ -298,6 +298,7 @@ class XLSXWriter
 		if (empty($sheet_name) || $this->sheets[$sheet_name]->finalized)
 			return;
 
+		
 		self::initializeSheet($sheet_name);
 		$sheet = &$this->sheets[$sheet_name];
 
@@ -676,12 +677,8 @@ class XLSXWriter
 	//------------------------------------------------------------------
 	public static function sanitize_sheetname($sheetname) 
 	{
-		static $badchars  = '\\/?*:[]';
-		static $goodchars = '        ';
-		$sheetname = strtr($sheetname, $badchars, $goodchars);
-		$sheetname = substr($sheetname, 0, 31);
-		$sheetname = trim(trim(trim($sheetname),"'"));//trim before and after trimming single quotes
-		return !empty($sheetname) ? $sheetname : 'Sheet'.((rand()%900)+100);
+		$sheetname = mb_substr(strtr($sheetname, '\\/?*:[]', '        '), 0, 31);
+       		return trim($sheetname, "' \t\n\r\0\x0B") ?: 'Sheet' . ((rand()%900)+99);
 	}
 	//------------------------------------------------------------------
 	public static function xmlspecialchars($val)
