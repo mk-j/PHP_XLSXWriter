@@ -1,97 +1,55 @@
-PHP_XLSXWriter
-==============
+# PHP_XLSXWriter Modified by Denuu
+This is a fork of the fantastically lightweight and quick PHP_XLSXWriter by @mk-j. It's the remedy for constantly running out of memory while writing XLSX spreadsheets with PHP.
+I did miss a few features from the previous library, so they've been implemented. Cross-compatible custom widths, title rows, autofilter, and freeze panes have been added.
 
-This library is designed to be lightweight, and have minimal memory usage.
+### Original Documentation
+https://github.com/mk-j/PHP_XLSXWriter
 
-It is designed to output an Excel compatible spreadsheet in (Office 2007+) xlsx format, with just basic features supported:
-* supports PHP 5.2.1+
-* takes UTF-8 encoded input
-* multiple worksheets
-* supports currency/date/numeric cell formatting, simple formulas
-* supports basic cell styling
-* supports writing huge 100K+ row spreadsheets
-
-[Never run out of memory with PHPExcel again](https://github.com/mk-j/PHP_XLSXWriter).
-
-Simple PHP CLI example:
-```php
-$data = array(
-    array('year','month','amount'),
-    array('2003','1','220'),
-    array('2003','2','153.5'),
-);
-
+## (De)New Features
+### Write Sheet Title
+Sometimes (always) we want to have a title row prior to the data columns, this modification allows for just that.
+Instead of passing page-wide column options into `writeSheetHeader()`, pass them into `writeSheetTitle()` as below:
+```
+$title_options = [
+    'font-size' 	=> 20,
+    'font-style' 	=> 'bold',
+    'valign' 		=> 'center',
+    'widths' 		=> [50, 80, 20, 40, 40, 25, 50, 40, 40, 40, 30],    			
+    'autofilter'	=> true,
+    'freeze_pane'	=> [2, 11]
+];
 $writer = new XLSXWriter();
-$writer->writeSheet($data);
-$writer->writeToFile('output.xlsx');
+$writer->setAuthor('author');
+$writer->writeSheetTitle('Spreadsheet_name', 'title-text', [int] # of columns to span, $title_options);
+$writer->writeSheetHeader(...);
 ```
 
-Simple/Advanced Cell Formats:
-```php
-$header = array(
-  'created'=>'date',
-  'product_id'=>'integer',
-  'quantity'=>'#,##0',
-  'amount'=>'price',
-  'description'=>'string',
-  'tax'=>'[$$-1009]#,##0.00;[RED]-[$$-1009]#,##0.00',
-);
-$data = array(
-    array('2015-01-01',873,1,'44.00','misc','=D2*0.05'),
-    array('2015-01-12',324,2,'88.00','none','=D3*0.05'),
-);
-
-$writer = new XLSXWriter();
-$writer->writeSheetHeader('Sheet1', $header );
-foreach($data as $row)
-	$writer->writeSheetRow('Sheet1', $row );
-$writer->writeToFile('example.xlsx');
+### AutoFilter
+Yes, that works now - with or without the use of the aforementioned title row. Simply pass it as a true option into the `writeSheetHeader()` options, or `writeSheetTitle()` options if you're using that:
+```
+$title_options = [
+    ...,
+    'autofilter' => true
+];
 ```
 
-50000 rows: (1.4s, 0MB memory usage)
-```php
-include_once("xlsxwriter.class.php");
-$writer = new XLSXWriter();
-$writer->writeSheetHeader('Sheet1', array('c1'=>'integer','c2'=>'integer','c3'=>'integer','c4'=>'integer') );
-for($i=0; $i<50000; $i++)
-{
-    $writer->writeSheetRow('Sheet1', array($i, $i+1, $i+2, $i+3) );
-}
-$writer->writeToFile('huge.xlsx');
-echo '#'.floor((memory_get_peak_usage())/1024/1024)."MB"."\n";
+### Freeze Panes
+I've added this as well, it's really nice to have the title and column headers frozen as you scroll through hundreds of thousands of lines of data. Simple pass the range of cells you'd like to freeze as a range array `[y, x]` where `y` is the number of rows, and `x` is the number of columns to be frozen (from origin, base 1).
 ```
-| rows   | time | memory |
-| ------ | ---- | ------ |
-|  50000 | 1.4s | 0MB    |
-| 100000 | 2.7s | 0MB    |
-| 150000 | 4.1s | 0MB    |
-| 200000 | 5.7s | 0MB    |
-| 250000 | 7.0s | 0MB    |
+$title_options = [
+    ...,
+    'freeze_pane' => [2, 11]
+];
+```
+The above will freeze the title row and the column headers, which looks good and works well.
 
-Simple cell formats map to more advanced cell formats
-
-| simple formats | format code |
-| ---------- | ---- |
-| string   | @ |
-| integer  | 0 |
-| date     | YYYY-MM-DD |
-| datetime | YYYY-MM-DD HH:MM:SS |
-| price    | #,##0.00 |
-| dollar   | [$$-1009]#,##0.00;[RED]-[$$-1009]#,##0.00 |
-| euro     | #,##0.00 [$€-407];[RED]-#,##0.00 [$€-407] |
-
-
-Basic cell styles have been available since version 0.30
-
-| style      | allowed values |
-| ---------- | ---- |
-| font       | Arial, Times New Roman, Courier New, Comic Sans MS |
-| font-size  | 8,9,10,11,12 ... |
-| font-style | bold, italic, underline, strikethrough or multiple ie: 'bold,italic' |
-| border     | left, right, top, bottom,   or multiple ie: 'top,left' |
-| color      | #RRGGBB, ie: #ff99cc or #f9c |
-| fill       | #RRGGBB, ie: #eeffee or #efe |
-| halign     | general, left, right, justify, center |
-| valign     | bottom, center, distributed |
-
-
+### X-compatible Widths
+The original library supports custom column widths, but the widths only function with Excel on Windows. I've modified widths to function on Mac Excel, and third party spreadsheets such as whatever Dave would use on UbuntuX. Nothing needs be done to enable this, simply pass an array of column widths into `writeSheetTitle()` if it's being used, otherwise into `writeSheetHeader()`:
+```
+$title_options = [
+    ...,
+    'widths' => [50, 80, 20, 40, 40, 25, 50, 40, 40, 40, 30],
+    ...
+];
+$writer->writeSheetTitle('Spreadsheet_name', 'title-text', [int] # of columns to span, $title_options);
+```
