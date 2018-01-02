@@ -350,7 +350,7 @@ class XLSXWriter
 	{
 		static $border_allowed = array('left','right','top','bottom');
 		static $horizontal_allowed = array('general','left','right','justify','center');
-		static $vertical_allowed = array('bottom','center','distributed');
+		static $vertical_allowed = array('bottom','center','distributed','top');
 		$default_font = array('size'=>'10','name'=>'Arial','family'=>'2');
 		$fills = array('','');//2 placeholders for static xml later
 		$fonts = array('','','','');//4 placeholders for static xml later
