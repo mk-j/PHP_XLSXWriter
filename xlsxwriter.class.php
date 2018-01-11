@@ -98,6 +98,10 @@ class XLSXWriter
 		$zip->addEmptyDir("xl/worksheets/");
 		foreach($this->sheets as $sheet) {
 			$zip->addFile($sheet->filename, "xl/worksheets/".$sheet->xmlname );
+			
+			// adding relationships for worksheets
+            $zip->addEmptyDir("xl/worksheets/_rels/");
+            $zip->addFile($sheet->rel_filename, "xl/worksheets/_rels/".$sheet->xmlname.".rels" );
 		}
 		$zip->addFromString("xl/workbook.xml"         , self::buildWorkbookXML() );
 		$zip->addFile($this->writeStylesXML(), "xl/styles.xml" );  //$zip->addFromString("xl/styles.xml"           , self::buildStylesXML() );
@@ -107,7 +111,32 @@ class XLSXWriter
 		$zip->addFromString("xl/_rels/workbook.xml.rels", self::buildWorkbookRelsXML() );
 		$zip->close();
 	}
+	
+	protected function insertHyperlinks($sheet_name, $hyperlinks)
+    {
+		$sheet = &$this->sheets[$sheet_name];
+		
+        $sheet->relfile_writer->write('<?xml version="1.0" encoding="UTF-8"?>' . "\n");
+		$sheet->relfile_writer->write('<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">');
 
+        $sheet->file_writer->write('<hyperlinks>');
+
+        $count = 1;
+        foreach( $hyperlinks as $columnId => $linkData ){
+            $sheet->file_writer->write('<hyperlink ref="'.$columnId.'" r:id="rId'.$count.'" display="'.self::xmlspecialchars($linkData["name"]).'"></hyperlink>');
+
+            $sheet->relfile_writer->write('<Relationship Id="rId'.$count.'" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/hyperlink" Target="'.self::xmlspecialchars($linkData["link"]).'" TargetMode="External" />');
+
+            $count++;
+        }
+
+        $sheet->file_writer->write('</hyperlinks>');
+        $sheet->relfile_writer->write('</Relationships>');
+		    $sheet->relfile_writer->close();
+    }
+
+	
+	
 	protected function initializeSheet($sheet_name, $col_widths=array() )
 	{
 		//if already initialized
@@ -115,11 +144,14 @@ class XLSXWriter
 			return;
 
 		$sheet_filename = $this->tempFilename();
+		$sheet_rel_filename = $this->tempFilename();
 		$sheet_xmlname = 'sheet' . (count($this->sheets) + 1).".xml";
 		$this->sheets[$sheet_name] = (object)array(
 			'filename' => $sheet_filename,
 			'sheetname' => $sheet_name,
 			'xmlname' => $sheet_xmlname,
+			'rel_filename' => $sheet_rel_filename,
+			'relfile_writer' => new XLSXWriter_BuffererWriter($sheet_rel_filename),
 			'row_count' => 0,
 			'file_writer' => new XLSXWriter_BuffererWriter($sheet_filename),
 			'columns' => array(),
@@ -306,7 +338,7 @@ class XLSXWriter
 		$sheet->merge_cells[] = $startCell . ":" . $endCell;
 	}
 
-	public function writeSheet(array $data, $sheet_name='', array $header_types=array())
+	public function writeSheet(array $data, $sheet_name='', array $header_types=array(), array $hyperlinks=array())
 	{
 		$sheet_name = empty($sheet_name) ? 'Sheet1' : $sheet_name;
 		$data = empty($data) ? array(array('')) : $data;
@@ -318,6 +350,7 @@ class XLSXWriter
 		{
 			$this->writeSheetRow($sheet_name, $row);
 		}
+		$this->insertHyperlinks($sheet_name, $hyperlinks);
 		$this->finalizeSheet($sheet_name);
 	}
 
