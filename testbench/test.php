@@ -17,7 +17,14 @@ $data2 = array(
     array('2003','02','345.12'),
 );
 $writer = new XLSXWriter();
+$keywords = array('some','interesting','keywords');
+
+$writer->setTitle('Some Title');
+$writer->setSubject('Some Subject');
 $writer->setAuthor('Some Author');
+$writer->setCompany('Some Company');
+$writer->setKeywords($keywords);
+$writer->setDescription('Some interesting description');
 $writer->writeSheet($data1,'Sheet1',$header);
 $writer->writeSheet($data2,'Sheet2');
 $writer->writeToFile('test.xlsx');

@@ -3,7 +3,14 @@ set_include_path( get_include_path().PATH_SEPARATOR."..");
 include_once("xlsxwriter.class.php");
 
 $writer = new XLSXWriter();
+$keywords = array('some','interesting','keywords');
+
+$writer->setTitle('Some Title');
+$writer->setSubject('Some Subject');
 $writer->setAuthor('Some Author');
+$writer->setCompany('Some Company');
+$writer->setKeywords($keywords);
+$writer->setDescription('Some interesting description');
 $writer->setTempDir(sys_get_temp_dir());//set custom tempdir
 
 //----
