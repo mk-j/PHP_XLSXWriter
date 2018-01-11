@@ -373,11 +373,9 @@ class XLSXWriter
 			$style = @json_decode($style_json_string, $as_assoc=true);
 
 			$style_indexes[$i] = array('num_fmt_idx'=>$number_format_idx);//initialize entry
-			if (isset($style['border']) && is_string($style['border']))
+			if (isset($style['border']) && is_string($style['border']))//border is a comma delimited str
 			{
-				$border_input = explode(",", $style['border']);
-				sort($border_input);
-				$border_value = array_intersect($border_input, $border_allowed);
+				$border_value['side'] = array_intersect(explode(",", $style['border']), $border_allowed);
 				if (isset($style['border-style']) && in_array($style['border-style'],$border_style_allowed))
 				{
 					$border_value['style'] = $style['border-style'];
@@ -505,14 +503,12 @@ class XLSXWriter
 			if (!empty($border)) { //fonts have an empty placeholder in the array to offset the static xml entry above
 				$pieces = json_decode($border,true);
 				$border_style = !empty($pieces['style']) ? $pieces['style'] : 'hair';
+				$border_color = !empty($pieces['color']) ? '<color rgb="'.strval($pieces['color']).'"/>' : '';
 				$file->write('<border diagonalDown="false" diagonalUp="false">');
 				foreach (array('left', 'right', 'top', 'bottom') as $side)
 				{
-					$file->write('<'.$side.(in_array($side,$pieces) ? ' style="'.$border_style.'"' : '').'>');
-					if (!empty($pieces['color'])) {
-						$file->write('<color rgb="'.strval($pieces['color']).'"/>');
-					}
-					$file->write('</'.$side.'>');
+                    $show_side = in_array($side,$pieces['side']) ? true : false;
+					$file->write($show_side ? "<$side style=\"$border_style\">$border_color</$side>" : "<$side/>");
 				}
 				$file->write(  '<diagonal/>');
 				$file->write('</border>');
