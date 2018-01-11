@@ -12,14 +12,18 @@ class XLSXWriter
 	const EXCEL_2007_MAX_ROW=1048576;
 	const EXCEL_2007_MAX_COL=16384;
 	//------------------------------------------------------------------
-	protected $title ='Doc Title';
-	protected $author ='Doc Author';
+	protected $title;
+	protected $subject;
+	protected $author;
+	protected $company;
+	protected $description;
+	protected $keywords = array();
+	
+	protected $current_sheet;
 	protected $sheets = array();
 	protected $temp_files = array();
 	protected $cell_styles = array();
 	protected $number_formats = array();
-
-	protected $current_sheet = '';
 
 	public function __construct()
 	{
@@ -35,7 +39,11 @@ class XLSXWriter
 	}
 
 	public function setTitle($title='') { $this->title=$title; }
+	public function setSubject($subject='') { $this->subject=$subject; }
 	public function setAuthor($author='') { $this->author=$author; }
+	public function setCompany($company='') { $this->company=$company; }
+	public function setKeywords($keywords='') { $this->keywords=$keywords; }
+	public function setDescription($description='') { $this->description=$description; }
 	public function setTempDir($tempdir='') { $this->tempdir=$tempdir; }
 
 	public function __destruct()
@@ -148,11 +156,11 @@ class XLSXWriter
 		$i=0;
 		if (!empty($col_widths)) {
 			foreach($col_widths as $column_width) {
-				$sheet->file_writer->write(  '<col collapsed="false" hidden="false" max="'.($i+1).'" min="'.($i+1).'" style="0" width="'.floatval($column_width).'"/>');
+				$sheet->file_writer->write(  '<col collapsed="false" hidden="false" max="'.($i+1).'" min="'.($i+1).'" style="0" customWidth="true" width="'.floatval($column_width).'"/>');
 				$i++;
 			}
 		}
-		$sheet->file_writer->write(  '<col collapsed="false" hidden="false" max="1024" min="'.($i+1).'" style="0" width="11.5"/>');
+		$sheet->file_writer->write(  '<col collapsed="false" hidden="false" max="1024" min="'.($i+1).'" style="0" customWidth="false" width="11.5"/>');
 		$sheet->file_writer->write(  '</cols>');
 		$sheet->file_writer->write(  '<sheetData>');
 	}
@@ -229,8 +237,8 @@ class XLSXWriter
 		{
 			$ht = isset($row_options['height']) ? floatval($row_options['height']) : 12.1;
 			$customHt = isset($row_options['height']) ? true : false;
-			$hidden = isset($row_options['hidden']) ? boolval($row_options['hidden']) : false;
-			$collapsed = isset($row_options['collapsed']) ? boolval($row_options['collapsed']) : false;
+			$hidden = isset($row_options['hidden']) ? (bool)($row_options['hidden']) : false;
+			$collapsed = isset($row_options['collapsed']) ? (bool)($row_options['collapsed']) : false;
 			$sheet->file_writer->write('<row collapsed="'.($collapsed).'" customFormat="false" customHeight="'.($customHt).'" hidden="'.($hidden).'" ht="'.($ht).'" outlineLevel="0" r="' . ($sheet->row_count + 1) . '">');
 		}
 		else
@@ -349,8 +357,9 @@ class XLSXWriter
 	protected function styleFontIndexes()
 	{
 		static $border_allowed = array('left','right','top','bottom');
+		static $border_style_allowed = array('thin','medium','thick','dashDot','dashDotDot','dashed','dotted','double','hair','mediumDashDot','mediumDashDotDot','mediumDashed','slantDashDot');
 		static $horizontal_allowed = array('general','left','right','justify','center');
-		static $vertical_allowed = array('bottom','center','distributed');
+		static $vertical_allowed = array('bottom','center','distributed','top');
 		$default_font = array('size'=>'10','name'=>'Arial','family'=>'2');
 		$fills = array('','');//2 placeholders for static xml later
 		$fonts = array('','','','');//4 placeholders for static xml later
@@ -364,12 +373,20 @@ class XLSXWriter
 			$style = @json_decode($style_json_string, $as_assoc=true);
 
 			$style_indexes[$i] = array('num_fmt_idx'=>$number_format_idx);//initialize entry
-			if (isset($style['border']) && is_string($style['border']))
+			if (isset($style['border']) && is_string($style['border']))//border is a comma delimited str
 			{
-				$border_input = explode(",", $style['border']);
-				sort($border_input);
-				$border_value = array_intersect($border_input, $border_allowed);
-				$style_indexes[$i]['border_idx'] = self::add_to_list_get_index($borders, implode(",", $border_value) );
+				$border_value['side'] = array_intersect(explode(",", $style['border']), $border_allowed);
+				if (isset($style['border-style']) && in_array($style['border-style'],$border_style_allowed))
+				{
+					$border_value['style'] = $style['border-style'];
+				}
+				if (isset($style['border-color']) && is_string($style['border-color']) && $style['border-color'][0]=='#')
+				{
+					$v = substr($style['border-color'],1,6);
+					$v = strlen($v)==3 ? $v[0].$v[0].$v[1].$v[1].$v[2].$v[2] : $v;// expand cf0 => ccff00
+					$border_value['color'] = "FF".strtoupper($v);
+				}
+				$style_indexes[$i]['border_idx'] = self::add_to_list_get_index($borders, json_encode($border_value));
 			}
 			if (isset($style['fill']) && is_string($style['fill']) && $style['fill'][0]=='#')
 			{
@@ -390,7 +407,7 @@ class XLSXWriter
 			if (isset($style['wrap_text']))
 			{
 				$style_indexes[$i]['alignment'] = true;
-				$style_indexes[$i]['wrap_text'] = $style['wrap_text'];
+				$style_indexes[$i]['wrap_text'] = (bool)$style['wrap_text'];
 			}
 
 			$font = $default_font;
@@ -484,12 +501,15 @@ class XLSXWriter
         $file->write(    '<border diagonalDown="false" diagonalUp="false"><left/><right/><top/><bottom/><diagonal/></border>');
 		foreach($borders as $border) {
 			if (!empty($border)) { //fonts have an empty placeholder in the array to offset the static xml entry above
-				$pieces = explode(",", $border);
+				$pieces = json_decode($border,true);
+				$border_style = !empty($pieces['style']) ? $pieces['style'] : 'hair';
+				$border_color = !empty($pieces['color']) ? '<color rgb="'.strval($pieces['color']).'"/>' : '';
 				$file->write('<border diagonalDown="false" diagonalUp="false">');
-				$file->write(  '<left'.(in_array('left',$pieces) ? ' style="hair"' : '').'/>');
-				$file->write(  '<right'.(in_array('right',$pieces) ? ' style="hair"' : '').'/>');
-				$file->write(  '<top'.(in_array('top',$pieces) ? ' style="hair"' : '').'/>');
-				$file->write(  '<bottom'.(in_array('bottom',$pieces) ? ' style="hair"' : '').'/>');
+				foreach (array('left', 'right', 'top', 'bottom') as $side)
+				{
+                    $show_side = in_array($side,$pieces['side']) ? true : false;
+					$file->write($show_side ? "<$side style=\"$border_style\">$border_color</$side>" : "<$side/>");
+				}
 				$file->write(  '<diagonal/>');
 				$file->write('</border>');
 			}
@@ -530,7 +550,7 @@ class XLSXWriter
 		foreach($style_indexes as $v)
 		{
 			$applyAlignment = isset($v['alignment']) ? 'true' : 'false';
-			$wrapText = isset($v['wrap_text']) ? boolval($v['wrap_text']) : 'false';
+			$wrapText = !empty($v['wrap_text']) ? 'true' : 'false';
 			$horizAlignment = isset($v['halign']) ? $v['halign'] : 'general';
 			$vertAlignment = isset($v['valign']) ? $v['valign'] : 'bottom';
 			$applyBorder = isset($v['border_idx']) ? 'true' : 'false';
@@ -562,7 +582,10 @@ class XLSXWriter
 	{
 		$app_xml="";
 		$app_xml.='<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'."\n";
-		$app_xml.='<Properties xmlns="http://schemas.openxmlformats.org/officeDocument/2006/extended-properties" xmlns:vt="http://schemas.openxmlformats.org/officeDocument/2006/docPropsVTypes"><TotalTime>0</TotalTime></Properties>';
+		$app_xml.='<Properties xmlns="http://schemas.openxmlformats.org/officeDocument/2006/extended-properties" xmlns:vt="http://schemas.openxmlformats.org/officeDocument/2006/docPropsVTypes">';
+		$app_xml.='<TotalTime>0</TotalTime>';
+		$app_xml.='<Company>'.self::xmlspecialchars($this->company).'</Company>';
+		$app_xml.='</Properties>';
 		return $app_xml;
 	}
 
@@ -573,7 +596,12 @@ class XLSXWriter
 		$core_xml.='<cp:coreProperties xmlns:cp="http://schemas.openxmlformats.org/package/2006/metadata/core-properties" xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:dcmitype="http://purl.org/dc/dcmitype/" xmlns:dcterms="http://purl.org/dc/terms/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">';
 		$core_xml.='<dcterms:created xsi:type="dcterms:W3CDTF">'.date("Y-m-d\TH:i:s.00\Z").'</dcterms:created>';//$date_time = '2014-10-25T15:54:37.00Z';
 		$core_xml.='<dc:title>'.self::xmlspecialchars($this->title).'</dc:title>';
+		$core_xml.='<dc:subject>'.self::xmlspecialchars($this->subject).'</dc:subject>';
 		$core_xml.='<dc:creator>'.self::xmlspecialchars($this->author).'</dc:creator>';
+		if (!empty($this->keywords)) {
+			$core_xml.='<cp:keywords>'.self::xmlspecialchars(implode (", ", (array)$this->keywords)).'</cp:keywords>';
+		}		
+		$core_xml.='<dc:description>'.self::xmlspecialchars($this->description).'</dc:description>';		
 		$core_xml.='<cp:revision>0</cp:revision>';
 		$core_xml.='</cp:coreProperties>';
 		return $core_xml;
@@ -705,11 +733,11 @@ class XLSXWriter
 		if ($num_format=='GENERAL') return 'n_auto';
 		if ($num_format=='@') return 'n_string';
 		if ($num_format=='0') return 'n_numeric';
-		if (preg_match("/[H]{1,2}:[M]{1,2}/", $num_format)) return 'n_datetime';
-		if (preg_match("/[M]{1,2}:[S]{1,2}/", $num_format)) return 'n_datetime';
-		if (preg_match("/[YY]{2,4}/", $num_format)) return 'n_date';
-		if (preg_match("/[D]{1,2}/", $num_format)) return 'n_date';
-		if (preg_match("/[M]{1,2}/", $num_format)) return 'n_date';
+		if (preg_match("/[H]{1,2}:[M]{1,2}/i", $num_format)) return 'n_datetime';
+		if (preg_match("/[M]{1,2}:[S]{1,2}/i", $num_format)) return 'n_datetime';
+		if (preg_match("/[Y]{2,4}/i", $num_format)) return 'n_date';
+		if (preg_match("/[D]{1,2}/i", $num_format)) return 'n_date';
+		if (preg_match("/[M]{1,2}/i", $num_format)) return 'n_date';
 		if (preg_match("/$/", $num_format)) return 'n_numeric';
 		if (preg_match("/%/", $num_format)) return 'n_numeric';
 		if (preg_match("/0/", $num_format)) return 'n_numeric';

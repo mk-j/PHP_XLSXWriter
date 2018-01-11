@@ -2,7 +2,14 @@
 include_once("../../xlsxwriter.class.php");
 
 $writer = new XLSXWriter();
+$keywords = array('some','interesting','keywords');
+
+$writer->setTitle('Some Title');
+$writer->setSubject('Some Subject');
 $writer->setAuthor('Some Author');
+$writer->setCompany('Some Company');
+$writer->setKeywords($keywords);
+$writer->setDescription('Some interesting description');
 
 $header = array(
     'General'=>'string',
