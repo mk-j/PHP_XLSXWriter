@@ -17,9 +17,9 @@ class XLSXWriter
 	protected $author;
 	protected $company;
 	protected $description;
-	protected $keywords = array();	
+	protected $keywords = array();
 	
-	protected $current_sheet;	
+	protected $current_sheet;
 	protected $sheets = array();
 	protected $temp_files = array();
 	protected $cell_styles = array();
@@ -237,8 +237,8 @@ class XLSXWriter
 		{
 			$ht = isset($row_options['height']) ? floatval($row_options['height']) : 12.1;
 			$customHt = isset($row_options['height']) ? true : false;
-			$hidden = isset($row_options['hidden']) ? boolval($row_options['hidden']) : false;
-			$collapsed = isset($row_options['collapsed']) ? boolval($row_options['collapsed']) : false;
+			$hidden = isset($row_options['hidden']) ? (bool)($row_options['hidden']) : false;
+			$collapsed = isset($row_options['collapsed']) ? (bool)($row_options['collapsed']) : false;
 			$sheet->file_writer->write('<row collapsed="'.($collapsed).'" customFormat="false" customHeight="'.($customHt).'" hidden="'.($hidden).'" ht="'.($ht).'" outlineLevel="0" r="' . ($sheet->row_count + 1) . '">');
 		}
 		else
@@ -398,7 +398,7 @@ class XLSXWriter
 			if (isset($style['wrap_text']))
 			{
 				$style_indexes[$i]['alignment'] = true;
-				$style_indexes[$i]['wrap_text'] = $style['wrap_text'];
+				$style_indexes[$i]['wrap_text'] = (bool)$style['wrap_text'];
 			}
 
 			$font = $default_font;
@@ -538,7 +538,7 @@ class XLSXWriter
 		foreach($style_indexes as $v)
 		{
 			$applyAlignment = isset($v['alignment']) ? 'true' : 'false';
-			$wrapText = isset($v['wrap_text']) ? boolval($v['wrap_text']) : 'false';
+			$wrapText = !empty($v['wrap_text']) ? 'true' : 'false';
 			$horizAlignment = isset($v['halign']) ? $v['halign'] : 'general';
 			$vertAlignment = isset($v['valign']) ? $v['valign'] : 'bottom';
 			$applyBorder = isset($v['border_idx']) ? 'true' : 'false';
