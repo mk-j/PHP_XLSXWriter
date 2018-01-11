@@ -108,7 +108,7 @@ class XLSXWriter
 		$zip->close();
 	}
 
-	protected function initializeSheet($sheet_name, $col_widths=array() )
+	protected function initializeSheet($sheet_name, $num_cols=0, $col_widths=array() )
 	{
 		//if already initialized
 		if ($this->current_sheet==$sheet_name || isset($this->sheets[$sheet_name]))
@@ -151,8 +151,15 @@ class XLSXWriter
 				$sheet->file_writer->write(  '<col collapsed="false" hidden="false" max="'.($i+1).'" min="'.($i+1).'" style="0" width="'.floatval($column_width).'"/>');
 				$i++;
 			}
+		} else if ($num_cols > 0) {
+			for ($i=0; $i<$num_cols; $i++) {
+				$sheet->file_writer->write(  '<col collapsed="false" hidden="false" max="'.($i+1).'" min="'.($i+1).'" style="0" width="11.5"/>');
+			}
+		} else {
+			// Some excel readers might not parse this and automatically
+			// hide all columns up to 1024 (AMK column)
+			$sheet->file_writer->write(  '<col collapsed="false" hidden="false" max="1024" min="'.($i+1).'" style="0" width="11.5"/>');
 		}
-		$sheet->file_writer->write(  '<col collapsed="false" hidden="false" max="1024" min="'.($i+1).'" style="0" width="11.5"/>');
 		$sheet->file_writer->write(  '</cols>');
 		$sheet->file_writer->write(  '<sheetData>');
 	}
@@ -195,7 +202,7 @@ class XLSXWriter
     $style = &$col_options;
 
 		$col_widths = isset($col_options['widths']) ? (array)$col_options['widths'] : array();
-		self::initializeSheet($sheet_name, $col_widths);
+		self::initializeSheet($sheet_name, count($header_types), $col_widths);
 		$sheet = &$this->sheets[$sheet_name];
 		$sheet->columns = $this->initializeColumnTypes($header_types);
 		if (!$suppress_row)
