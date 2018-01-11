@@ -116,7 +116,7 @@ class XLSXWriter
 		$zip->close();
 	}
 
-	protected function initializeSheet($sheet_name, $col_widths=array() )
+	protected function initializeSheet($sheet_name, $col_widths=array(), $auto_filter=false, $freeze_rows=false, $freeze_columns=false )
 	{
 		//if already initialized
 		if ($this->current_sheet==$sheet_name || isset($this->sheets[$sheet_name]))
@@ -134,6 +134,9 @@ class XLSXWriter
 			'merge_cells' => array(),
 			'max_cell_tag_start' => 0,
 			'max_cell_tag_end' => 0,
+			'auto_filter' => $auto_filter,
+			'freeze_rows' => $freeze_rows,
+			'freeze_columns' => $freeze_columns,
 			'finalized' => false,
 		);
 		$sheet = &$this->sheets[$sheet_name];
@@ -149,7 +152,23 @@ class XLSXWriter
 		$sheet->max_cell_tag_end = $sheet->file_writer->ftell();
 		$sheet->file_writer->write(  '<sheetViews>');
 		$sheet->file_writer->write(    '<sheetView colorId="64" defaultGridColor="true" rightToLeft="false" showFormulas="false" showGridLines="true" showOutlineSymbols="true" showRowColHeaders="true" showZeros="true" tabSelected="' . $tabselected . '" topLeftCell="A1" view="normal" windowProtection="false" workbookViewId="0" zoomScale="100" zoomScaleNormal="100" zoomScalePageLayoutView="100">');
-		$sheet->file_writer->write(      '<selection activeCell="A1" activeCellId="0" pane="topLeft" sqref="A1"/>');
+		if ($sheet->freeze_rows && $sheet->freeze_columns) {
+			$sheet->file_writer->write(      '<pane ySplit="'.$sheet->freeze_rows.'" xSplit="'.$sheet->freeze_columns.'" topLeftCell="'.self::xlsCell($sheet->freeze_rows, $sheet->freeze_columns).'" activePane="bottomRight" state="frozen"/>');
+			$sheet->file_writer->write(      '<selection activeCell="'.self::xlsCell($sheet->freeze_rows, 0).'" activeCellId="0" pane="topRight" sqref="'.self::xlsCell($sheet->freeze_rows, 0).'"/>');
+			$sheet->file_writer->write(      '<selection activeCell="'.self::xlsCell(0, $sheet->freeze_columns).'" activeCellId="0" pane="bottomLeft" sqref="'.self::xlsCell(0, $sheet->freeze_columns).'"/>');
+			$sheet->file_writer->write(      '<selection activeCell="'.self::xlsCell($sheet->freeze_rows, $sheet->freeze_columns).'" activeCellId="0" pane="bottomRight" sqref="'.self::xlsCell($sheet->freeze_rows, $sheet->freeze_columns).'"/>');
+		}
+		elseif ($sheet->freeze_rows) {
+			$sheet->file_writer->write(      '<pane ySplit="'.$sheet->freeze_rows.'" topLeftCell="'.self::xlsCell($sheet->freeze_rows, 0).'" activePane="bottomLeft" state="frozen"/>');
+			$sheet->file_writer->write(      '<selection activeCell="'.self::xlsCell($sheet->freeze_rows, 0).'" activeCellId="0" pane="bottomLeft" sqref="'.self::xlsCell($sheet->freeze_rows, 0).'"/>');
+		}
+		elseif ($sheet->freeze_columns) {
+			$sheet->file_writer->write(      '<pane xSplit="'.$sheet->freeze_columns.'" topLeftCell="'.self::xlsCell(0, $sheet->freeze_columns).'" activePane="topRight" state="frozen"/>');
+			$sheet->file_writer->write(      '<selection activeCell="'.self::xlsCell(0, $sheet->freeze_columns).'" activeCellId="0" pane="topRight" sqref="'.self::xlsCell(0, $sheet->freeze_columns).'"/>');
+		}
+		else { // not frozen
+			$sheet->file_writer->write(      '<selection activeCell="A1" activeCellId="0" pane="topLeft" sqref="A1"/>');
+		}
 		$sheet->file_writer->write(    '</sheetView>');
 		$sheet->file_writer->write(  '</sheetViews>');
 		$sheet->file_writer->write(  '<cols>');
@@ -203,7 +222,10 @@ class XLSXWriter
     $style = &$col_options;
 
 		$col_widths = isset($col_options['widths']) ? (array)$col_options['widths'] : array();
-		self::initializeSheet($sheet_name, $col_widths);
+		$auto_filter = isset($col_options['auto_filter']) ? intval($col_options['auto_filter']) : false;
+		$freeze_rows = isset($col_options['freeze_rows']) ? intval($col_options['freeze_rows']) : false;
+		$freeze_columns = isset($col_options['freeze_columns']) ? intval($col_options['freeze_columns']) : false;
+		self::initializeSheet($sheet_name, $col_widths, $auto_filter, $freeze_rows, $freeze_columns);
 		$sheet = &$this->sheets[$sheet_name];
 		$sheet->columns = $this->initializeColumnTypes($header_types);
 		if (!$suppress_row)
@@ -283,6 +305,12 @@ class XLSXWriter
 			$sheet->file_writer->write(    '</mergeCells>');
 		}
 
+		$max_cell = self::xlsCell($sheet->row_count - 1, count($sheet->columns) - 1);
+
+		if ($sheet->auto_filter) {
+			$sheet->file_writer->write(    '<autoFilter ref="A1:' . $max_cell . '"/>');			
+		}
+
 		$sheet->file_writer->write(    '<printOptions headings="false" gridLines="false" gridLinesSet="true" horizontalCentered="false" verticalCentered="false"/>');
 		$sheet->file_writer->write(    '<pageMargins left="0.5" right="0.5" top="1.0" bottom="1.0" header="0.5" footer="0.5"/>');
 		$sheet->file_writer->write(    '<pageSetup blackAndWhite="false" cellComments="none" copies="1" draft="false" firstPageNumber="1" fitToHeight="1" fitToWidth="1" horizontalDpi="300" orientation="portrait" pageOrder="downThenOver" paperSize="1" scale="100" useFirstPageNumber="true" usePrinterDefaults="false" verticalDpi="300"/>');
@@ -292,7 +320,6 @@ class XLSXWriter
 		$sheet->file_writer->write(    '</headerFooter>');
 		$sheet->file_writer->write('</worksheet>');
 
-		$max_cell = self::xlsCell($sheet->row_count - 1, count($sheet->columns) - 1);
 		$max_cell_tag = '<dimension ref="A1:' . $max_cell . '"/>';
 		$padding_length = $sheet->max_cell_tag_end - $sheet->max_cell_tag_start - strlen($max_cell_tag);
 		$sheet->file_writer->fseek($sheet->max_cell_tag_start);
@@ -635,6 +662,15 @@ class XLSXWriter
 			$i++;
 		}
 		$workbook_xml.='</sheets>';
+		$workbook_xml.='<definedNames>';
+		foreach($this->sheets as $sheet_name=>$sheet) {
+			if ($sheet->auto_filter) {
+				$sheetname = self::sanitize_sheetname($sheet->sheetname);
+				$workbook_xml.='<definedName name="_xlnm._FilterDatabase" localSheetId="0" hidden="1">\''.self::xmlspecialchars($sheetname).'\'!$A$1:' . self::xlsCell($sheet->row_count - 1, count($sheet->columns) - 1, true) . '</definedName>';
+				$i++;	
+			}
+		}
+		$workbook_xml.='</definedNames>';
 		$workbook_xml.='<calcPr iterateCount="100" refMode="A1" iterate="false" iterateDelta="0.001"/></workbook>';
 		return $workbook_xml;
 	}
@@ -678,13 +714,17 @@ class XLSXWriter
 	/*
 	 * @param $row_number int, zero based
 	 * @param $column_number int, zero based
-	 * @return Cell label/coordinates, ex: A1, C3, AA42
+	 * @param $absolute bool
+	 * @return Cell label/coordinates, ex: A1, C3, AA42 (or if $absolute==true: $A$1, $C$3, $AA$42)
 	 * */
-	public static function xlsCell($row_number, $column_number)
+	public static function xlsCell($row_number, $column_number, $absolute=false)
 	{
 		$n = $column_number;
 		for($r = ""; $n >= 0; $n = intval($n / 26) - 1) {
 			$r = chr($n%26 + 0x41) . $r;
+		}
+		if ($absolute) {
+			return '$' . $r . '$' . ($row_number+1);			
 		}
 		return $r . ($row_number+1);
 	}
