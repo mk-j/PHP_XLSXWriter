@@ -40,15 +40,8 @@ $pi = 3.14159;
 $date = '2018-12-31 23:59:59';
 $amount = '5120.5';
 
-$keywords = array('some','interesting','keywords');
-
 $writer = new XLSXWriter();
-$writer->setTitle('Some Title');
-$writer->setSubject('Some Subject');
 $writer->setAuthor('Some Author');
-$writer->setCompany('Some Company');
-$writer->setKeywords($keywords);
-$writer->setDescription('Some interesting description');
 $writer->writeSheetHeader('BasicFormats',$sheet1header);
 $writer->writeSheetRow('BasicFormats',array($pi,$pi,$pi,$pi,$pi,$pi,$pi,$pi,$pi) );
 $writer->writeSheetHeader('Dates',$sheet2header);

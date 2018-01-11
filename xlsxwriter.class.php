@@ -587,7 +587,7 @@ class XLSXWriter
 		$core_xml.='<dc:subject>'.self::xmlspecialchars($this->subject).'</dc:subject>';
 		$core_xml.='<dc:creator>'.self::xmlspecialchars($this->author).'</dc:creator>';
 		if (!empty($this->keywords)) {
-			$core_xml.='<cp:keywords>'.self::xmlspecialchars(implode (", ", $this->keywords)).'</cp:keywords>';
+			$core_xml.='<cp:keywords>'.self::xmlspecialchars(implode (", ", (array)$this->keywords)).'</cp:keywords>';
 		}		
 		$core_xml.='<dc:description>'.self::xmlspecialchars($this->description).'</dc:description>';		
 		$core_xml.='<cp:revision>0</cp:revision>';
