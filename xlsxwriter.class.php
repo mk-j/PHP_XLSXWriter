@@ -258,10 +258,11 @@ class XLSXWriter
 		if (!empty($row_options))
 		{
 			$ht = isset($row_options['height']) ? floatval($row_options['height']) : 12.1;
+			$outlineLevel = isset($row_options['outlineLevel']) ? intval($row_options['outlineLevel']) : 0;
 			$customHt = isset($row_options['height']) ? true : false;
 			$hidden = isset($row_options['hidden']) ? (bool)($row_options['hidden']) : false;
 			$collapsed = isset($row_options['collapsed']) ? (bool)($row_options['collapsed']) : false;
-			$sheet->file_writer->write('<row collapsed="'.($collapsed).'" customFormat="false" customHeight="'.($customHt).'" hidden="'.($hidden).'" ht="'.($ht).'" outlineLevel="0" r="' . ($sheet->row_count + 1) . '">');
+			$sheet->file_writer->write('<row collapsed="'.($collapsed).'" customFormat="false" customHeight="'.($customHt).'" hidden="'.($hidden).'" ht="'.($ht).'" outlineLevel="'.($outlineLevel).'" r="' . ($sheet->row_count + 1) . '">');
 		}
 		else
 		{
