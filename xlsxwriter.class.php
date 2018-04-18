@@ -884,6 +884,16 @@ class XLSXWriter
 		return $days + $seconds;
 	}
 	//------------------------------------------------------------------
+    //usage::
+    //$headerTitleStyle = $xlsWriter->emptyValArray($headLength, 'string');
+    //$xlsWriter->writeSheetHeader($sheet, $headerTitleStyle, $col_options);
+    public function emptyValArray($length, $repeat = ''){
+        $tmpArr = [];
+        for ($i=0;$i<$length;$i++) {
+            $tmpArr[] = $repeat;
+        }
+        return $tmpArr;
+    }
 }
 
 class XLSXWriter_BuffererWriter
