@@ -18,7 +18,7 @@ class XLSXWriter
 	protected $company;
 	protected $description;
 	protected $keywords = array();
-	
+
 	protected $current_sheet;
 	protected $sheets = array();
 	protected $temp_files = array();
@@ -230,7 +230,7 @@ class XLSXWriter
 		$sheet->columns = $this->initializeColumnTypes($header_types);
 		if (!$suppress_row)
 		{
-			$header_row = array_keys($header_types);      
+			$header_row = array_keys($header_types);
 
 			$sheet->file_writer->write('<row collapsed="false" customFormat="false" customHeight="false" hidden="false" ht="12.1" outlineLevel="0" r="' . (1) . '">');
 			foreach ($header_row as $c => $v) {
@@ -254,7 +254,7 @@ class XLSXWriter
 			$default_column_types = $this->initializeColumnTypes( array_fill($from=0, $until=count($row), 'GENERAL') );//will map to n_auto
 			$sheet->columns = array_merge((array)$sheet->columns, $default_column_types);
 		}
-		
+
 		if (!empty($row_options))
 		{
 			$ht = isset($row_options['height']) ? floatval($row_options['height']) : 12.1;
@@ -308,7 +308,7 @@ class XLSXWriter
 		$max_cell = self::xlsCell($sheet->row_count - 1, count($sheet->columns) - 1);
 
 		if ($sheet->auto_filter) {
-			$sheet->file_writer->write(    '<autoFilter ref="A1:' . $max_cell . '"/>');			
+			$sheet->file_writer->write(    '<autoFilter ref="A1:' . $max_cell . '"/>');
 		}
 
 		$sheet->file_writer->write(    '<printOptions headings="false" gridLines="false" gridLinesSet="true" horizontalCentered="false" verticalCentered="false"/>');
@@ -403,10 +403,11 @@ class XLSXWriter
 			if (isset($style['border']) && is_string($style['border']))//border is a comma delimited str
 			{
 				$border_value['side'] = array_intersect(explode(",", $style['border']), $border_allowed);
-				if (isset($style['border-style']) && in_array($style['border-style'],$border_style_allowed))
-				{
-					$border_value['style'] = $style['border-style'];
+				if (isset($style['border-style'])) {
+					$temp = array_intersect(explode(",", $style['border-style']), $border_style_allowed);
+					if (!empty($temp)) foreach($border_value['side'] as $index => $side) if (isset($temp[$index])) $border_value['style'][$side] = $temp[$index];
 				}
+
 				if (isset($style['border-color']) && is_string($style['border-color']) && $style['border-color'][0]=='#')
 				{
 					$v = substr($style['border-color'],1,6);
@@ -529,13 +530,15 @@ class XLSXWriter
 		foreach($borders as $border) {
 			if (!empty($border)) { //fonts have an empty placeholder in the array to offset the static xml entry above
 				$pieces = json_decode($border,true);
-				$border_style = !empty($pieces['style']) ? $pieces['style'] : 'hair';
+				$border_style = !empty($pieces['style']) ? $pieces['style'] : [];
+
 				$border_color = !empty($pieces['color']) ? '<color rgb="'.strval($pieces['color']).'"/>' : '';
 				$file->write('<border diagonalDown="false" diagonalUp="false">');
 				foreach (array('left', 'right', 'top', 'bottom') as $side)
 				{
                     $show_side = in_array($side,$pieces['side']) ? true : false;
-					$file->write($show_side ? "<$side style=\"$border_style\">$border_color</$side>" : "<$side/>");
+					$side_style = isset($border_style[$side]) ? $border_style[$side] : 'hair';
+					$file->write($show_side ? "<$side style=\"$side_style\">$border_color</$side>" : "<$side/>");
 				}
 				$file->write(  '<diagonal/>');
 				$file->write('</border>');
@@ -627,8 +630,8 @@ class XLSXWriter
 		$core_xml.='<dc:creator>'.self::xmlspecialchars($this->author).'</dc:creator>';
 		if (!empty($this->keywords)) {
 			$core_xml.='<cp:keywords>'.self::xmlspecialchars(implode (", ", (array)$this->keywords)).'</cp:keywords>';
-		}		
-		$core_xml.='<dc:description>'.self::xmlspecialchars($this->description).'</dc:description>';		
+		}
+		$core_xml.='<dc:description>'.self::xmlspecialchars($this->description).'</dc:description>';
 		$core_xml.='<cp:revision>0</cp:revision>';
 		$core_xml.='</cp:coreProperties>';
 		return $core_xml;
@@ -667,7 +670,7 @@ class XLSXWriter
 			if ($sheet->auto_filter) {
 				$sheetname = self::sanitize_sheetname($sheet->sheetname);
 				$workbook_xml.='<definedName name="_xlnm._FilterDatabase" localSheetId="0" hidden="1">\''.self::xmlspecialchars($sheetname).'\'!$A$1:' . self::xlsCell($sheet->row_count - 1, count($sheet->columns) - 1, true) . '</definedName>';
-				$i++;	
+				$i++;
 			}
 		}
 		$workbook_xml.='</definedNames>';
@@ -724,7 +727,7 @@ class XLSXWriter
 			$r = chr($n%26 + 0x41) . $r;
 		}
 		if ($absolute) {
-			return '$' . $r . '$' . ($row_number+1);			
+			return '$' . $r . '$' . ($row_number+1);
 		}
 		return $r . ($row_number+1);
 	}
@@ -742,7 +745,7 @@ class XLSXWriter
 		return str_replace($all_invalids, "", $filename);
 	}
 	//------------------------------------------------------------------
-	public static function sanitize_sheetname($sheetname) 
+	public static function sanitize_sheetname($sheetname)
 	{
 		static $badchars  = '\\/?*:[]';
 		static $goodchars = '        ';
@@ -962,7 +965,3 @@ class XLSXWriter_BuffererWriter
 		return preg_match("//u", $string) ? true : false;
 	}
 }
-
-
-
-// vim: set filetype=php expandtab tabstop=4 shiftwidth=4 autoindent smartindent:
