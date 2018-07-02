@@ -778,9 +778,9 @@ class XLSXWriter
 		if (preg_match("/[Y]{2,4}/i", $num_format)) return 'n_date';
 		if (preg_match("/[D]{1,2}/i", $num_format)) return 'n_date';
 		if (preg_match("/[M]{1,2}/i", $num_format)) return 'n_date';
-		if (preg_match("/$/", $num_format)) return 'n_numeric';
-		if (preg_match("/%/", $num_format)) return 'n_numeric';
-		if (preg_match("/0/", $num_format)) return 'n_numeric';
+		if (preg_match('/\$/', $num_format)) return 'n_numeric';
+		if (preg_match('/%/', $num_format)) return 'n_numeric';
+		if (preg_match('/[0#?]/', $num_format)) return 'n_numeric';
 		return 'n_auto';
 	}
 	//------------------------------------------------------------------
