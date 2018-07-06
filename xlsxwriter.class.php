@@ -116,7 +116,7 @@ class XLSXWriter
 		$zip->close();
 	}
 
-	protected function initializeSheet($sheet_name, $col_widths=array(), $auto_filter=false, $freeze_rows=false, $freeze_columns=false )
+	protected function initializeSheet($sheet_name, $col_widths=array(), $auto_filter=false, $freeze_rows=false, $freeze_columns=false, $page_setup=array())
 	{
 		//if already initialized
 		if ($this->current_sheet==$sheet_name || isset($this->sheets[$sheet_name]))
@@ -137,6 +137,7 @@ class XLSXWriter
 			'auto_filter' => $auto_filter,
 			'freeze_rows' => $freeze_rows,
 			'freeze_columns' => $freeze_columns,
+			'page_setup' => $page_setup,
 			'finalized' => false,
 		);
 		$sheet = &$this->sheets[$sheet_name];
@@ -145,7 +146,7 @@ class XLSXWriter
 		$sheet->file_writer->write('<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' . "\n");
 		$sheet->file_writer->write('<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">');
 		$sheet->file_writer->write(  '<sheetPr filterMode="false">');
-		$sheet->file_writer->write(    '<pageSetUpPr fitToPage="false"/>');
+		$sheet->file_writer->write(    '<pageSetUpPr fitToPage="' . (string)(!empty($page_setup['fit_to_width']) || !empty($page_setup['fit_to_height'])) . '"/>');
 		$sheet->file_writer->write(  '</sheetPr>');
 		$sheet->max_cell_tag_start = $sheet->file_writer->ftell();
 		$sheet->file_writer->write('<dimension ref="A1:' . $max_cell . '"/>');
@@ -225,7 +226,8 @@ class XLSXWriter
 		$auto_filter = isset($col_options['auto_filter']) ? intval($col_options['auto_filter']) : false;
 		$freeze_rows = isset($col_options['freeze_rows']) ? intval($col_options['freeze_rows']) : false;
 		$freeze_columns = isset($col_options['freeze_columns']) ? intval($col_options['freeze_columns']) : false;
-		self::initializeSheet($sheet_name, $col_widths, $auto_filter, $freeze_rows, $freeze_columns);
+		$page_setup = isset($col_options['page_setup']) ? (array)$col_options['page_setup'] : array();
+		self::initializeSheet($sheet_name, $col_widths, $auto_filter, $freeze_rows, $freeze_columns, $page_setup);
 		$sheet = &$this->sheets[$sheet_name];
 		$sheet->columns = $this->initializeColumnTypes($header_types);
 		if (!$suppress_row)
@@ -311,12 +313,52 @@ class XLSXWriter
 			$sheet->file_writer->write(    '<autoFilter ref="A1:' . $max_cell . '"/>');			
 		}
 
-		$sheet->file_writer->write(    '<printOptions headings="false" gridLines="false" gridLinesSet="true" horizontalCentered="false" verticalCentered="false"/>');
-		$sheet->file_writer->write(    '<pageMargins left="0.5" right="0.5" top="1.0" bottom="1.0" header="0.5" footer="0.5"/>');
-		$sheet->file_writer->write(    '<pageSetup blackAndWhite="false" cellComments="none" copies="1" draft="false" firstPageNumber="1" fitToHeight="1" fitToWidth="1" horizontalDpi="300" orientation="portrait" pageOrder="downThenOver" paperSize="1" scale="100" useFirstPageNumber="true" usePrinterDefaults="false" verticalDpi="300"/>');
+		$page_setup = $sheet->page_setup;
+		$set_allowed_value_func = function($key, $alloweed_array, $default) use ($page_setup) {
+			return (isset($page_setup[$key]) && in_array($page_setup[$key], $alloweed_array)) ? $page_setup[$key] : $default;
+		};
+		$set_boolean_value_func = function($key, $default) use ($page_setup) {
+			$boolval = filter_var((isset($page_setup[$key]) ? $page_setup[$key] : $default), FILTER_VALIDATE_BOOLEAN);
+			return ($boolval) ? 'true' : 'false';
+		};
+
+		$sheet->file_writer->write(    '<printOptions');
+		$sheet->file_writer->write(      ' headings="'           . $set_boolean_value_func('headings',            false) . '"');
+		$sheet->file_writer->write(      ' gridLines="'          . $set_boolean_value_func('grid_lines',          false) . '"');
+		$sheet->file_writer->write(      ' gridLinesSet="'       . $set_boolean_value_func('grid_lines_set',      true) . '"');
+		$sheet->file_writer->write(      ' horizontalCentered="' . $set_boolean_value_func('horizontal_centered', false) . '"');
+		$sheet->file_writer->write(      ' verticalCentered="'   . $set_boolean_value_func('vertical_centered',   false) . '"');
+		$sheet->file_writer->write(      '/>');
+		$sheet->file_writer->write(    '<pageMargins'); // in inches
+		$sheet->file_writer->write(      ' left="'   . (string)(isset($page_setup['margin_left'])   ? floatval($page_setup['margin_left'])   : 0.5) . '"');
+		$sheet->file_writer->write(      ' right="'  . (string)(isset($page_setup['margin_right'])  ? floatval($page_setup['margin_right'])  : 0.5) . '"');
+		$sheet->file_writer->write(      ' top="'    . (string)(isset($page_setup['margin_top'])    ? floatval($page_setup['margin_top'])    : 1.0) . '"');
+		$sheet->file_writer->write(      ' bottom="' . (string)(isset($page_setup['margin_bottom']) ? floatval($page_setup['margin_bottom']) : 1.0) . '"');
+		$sheet->file_writer->write(      ' header="' . (string)(isset($page_setup['margin_header']) ? floatval($page_setup['margin_header']) : 0.5) . '"');
+		$sheet->file_writer->write(      ' footer="' . (string)(isset($page_setup['margin_footer']) ? floatval($page_setup['margin_footer']) : 0.5) . '"');
+		$sheet->file_writer->write(      '/>');
+		$sheet->file_writer->write(    '<pageSetup');
+		$sheet->file_writer->write(      ' paperSize="'       . (string)(isset($page_setup['paper_size'])        ? intval($page_setup['paper_size'])        : 1) . '"'); // specify XlPaperSize value (1-68)
+		$sheet->file_writer->write(      ' scale="'           . (string)(isset($page_setup['scale'])             ? intval($page_setup['scale'])           : 100) . '"');
+		$sheet->file_writer->write(      ' firstPageNumber="' . (string)(isset($page_setup['first_page_number']) ? intval($page_setup['first_page_number']) : 1) . '"');
+		$sheet->file_writer->write(      ' fitToWidth="'      . (string)(isset($page_setup['fit_to_width'])      ? intval($page_setup['fit_to_width'])      : 0) . '"'); // if set, enables fitToPage
+		$sheet->file_writer->write(      ' fitToHeight="'     . (string)(isset($page_setup['fit_to_height'])     ? intval($page_setup['fit_to_height'])     : 0) . '"'); // if set, enables fitToPage
+		$sheet->file_writer->write(      ' pageOrder="'          . $set_allowed_value_func('page_order', array('overThenDown', 'downThenOver'),  'downThenOver') . '"');
+		$sheet->file_writer->write(      ' orientation="'        . $set_allowed_value_func('orientation', array('landscape', 'portrait', 'default'),  'default') . '"');
+		$sheet->file_writer->write(      ' usePrinterDefaults="' . $set_boolean_value_func('use_printer_defaults',                                         true) . '"');
+		$sheet->file_writer->write(      ' blackAndWhite="'      . $set_boolean_value_func('black_and_white',                                             false) . '"');
+		$sheet->file_writer->write(      ' draft="'              . $set_boolean_value_func('draft',                                                       false) . '"');
+		$sheet->file_writer->write(      ' cellComments="'       . $set_allowed_value_func('cell_comments', array('asDisplayed', 'atEnd', 'none'),       'none') . '"');
+		$sheet->file_writer->write(      ' useFirstPageNumber="' . $set_boolean_value_func('use_first_page_number',                                       false) . '"');
+		$sheet->file_writer->write(      ' errors="'             . $set_allowed_value_func('errors', array('blank', 'dash', 'displayed', 'NA'),     'displayed') . '"');
+		$sheet->file_writer->write(      ' horizontalDpi="'   . (string)(isset($page_setup['horizontal_dpi'])    ? intval($page_setup['horizontal_dpi'])  : 600) . '"');
+		$sheet->file_writer->write(      ' verticalDpi="'     . (string)(isset($page_setup['vertical_dpi'])      ? intval($page_setup['vertical_dpi'])    : 600) . '"');
+		$sheet->file_writer->write(      ' copies="'          . (string)(isset($page_setup['copies'])            ? intval($page_setup['copies'])            : 1) . '"');
+		$sheet->file_writer->write(      '/>');
+
 		$sheet->file_writer->write(    '<headerFooter differentFirst="false" differentOddEven="false">');
-		$sheet->file_writer->write(        '<oddHeader>&amp;C&amp;&quot;Times New Roman,Regular&quot;&amp;12&amp;A</oddHeader>');
-		$sheet->file_writer->write(        '<oddFooter>&amp;C&amp;&quot;Times New Roman,Regular&quot;&amp;12Page &amp;P</oddFooter>');
+		$sheet->file_writer->write(        '<oddHeader>' . (string)(isset($page_setup['header']) ? $page_setup['header'] : '&amp;C&amp;&quot;Times New Roman,Regular&quot;&amp;12&amp;A') . '</oddHeader>');
+		$sheet->file_writer->write(        '<oddFooter>' . (string)(isset($page_setup['footer']) ? $page_setup['footer'] : '&amp;C&amp;&quot;Times New Roman,Regular&quot;&amp;12Page &amp;P') . '</oddFooter>');
 		$sheet->file_writer->write(    '</headerFooter>');
 		$sheet->file_writer->write('</worksheet>');
 
@@ -663,12 +705,39 @@ class XLSXWriter
 		}
 		$workbook_xml.='</sheets>';
 		$workbook_xml.='<definedNames>';
+		$i=0;
 		foreach($this->sheets as $sheet_name=>$sheet) {
 			if ($sheet->auto_filter) {
 				$sheetname = self::sanitize_sheetname($sheet->sheetname);
-				$workbook_xml.='<definedName name="_xlnm._FilterDatabase" localSheetId="0" hidden="1">\''.self::xmlspecialchars($sheetname).'\'!$A$1:' . self::xlsCell($sheet->row_count - 1, count($sheet->columns) - 1, true) . '</definedName>';
-				$i++;	
+				$workbook_xml.='<definedName name="_xlnm._FilterDatabase" localSheetId="'.$i.'" hidden="1">\''.self::xmlspecialchars($sheetname).'\'!$A$1:' . self::xlsCell($sheet->row_count - 1, count($sheet->columns) - 1, true) . '</definedName>';
 			}
+			$i++;	
+		}
+		$i=0;
+		foreach($this->sheets as $sheet_name=>$sheet) {
+			if (!empty($sheet->page_setup['print_area'])) {
+				$sheetname = self::sanitize_sheetname($sheet->sheetname);
+				$workbook_xml.='<definedName name="_xlnm.Print_Area" localSheetId="'.$i.'">';
+				$print_area = (array)$sheet->page_setup['print_area'];
+				foreach($print_area as $index => $range) {
+					$workbook_xml.=($index==0 ? '' : ',') . '\''.self::xmlspecialchars($sheetname).'\'!' . $range;
+				}
+				$workbook_xml.='</definedName>';
+			}
+			$i++;	
+		}
+		$i=0;
+		foreach($this->sheets as $sheet_name=>$sheet) {
+			if (!empty($sheet->page_setup['print_titles'])) {
+				$sheetname = self::sanitize_sheetname($sheet->sheetname);
+				$workbook_xml.='<definedName name="_xlnm.Print_Titles" localSheetId="'.$i.'">';
+				$print_titles = (array)$sheet->page_setup['print_titles'];
+				foreach($print_titles as $index => $range) {
+					$workbook_xml.=($index==0 ? '' : ',') . '\''.self::xmlspecialchars($sheetname).'\'!' . $range;
+				}
+				$workbook_xml.='</definedName>';
+			}
+			$i++;	
 		}
 		$workbook_xml.='</definedNames>';
 		$workbook_xml.='<calcPr iterateCount="100" refMode="A1" iterate="false" iterateDelta="0.001"/></workbook>';
