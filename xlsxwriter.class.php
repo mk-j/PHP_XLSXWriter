@@ -365,11 +365,25 @@ class XLSXWriter
 		} elseif (is_string($value) && $value{0}=='='){
 			$file->write('<c r="'.$cell_name.'" s="'.$cell_style_idx.'" t="s"><f>'.self::xmlspecialchars($value).'</f></c>');
 		} elseif ($num_format_type=='n_date') {
-			$file->write('<c r="'.$cell_name.'" s="'.$cell_style_idx.'" t="n"><v>'.intval(self::convert_date_time($value)).'</v></c>');
+			$dateValue = self::convert_date_time($value);
+			if ($dateValue > 0 || preg_match("/(\d+):(\d{2}):(\d{2})/", $value)) {
+				$file->write('<c r="'.$cell_name.'" s="'.$cell_style_idx.'" t="n"><v>'.intval($dateValue).'</v></c>');
+			} else { //not date, treat it as string
+				$file->write('<c r="'.$cell_name.'" s="'.$cell_style_idx.'" t="inlineStr"><is><t>'.self::xmlspecialchars($value).'</t></is></c>');
+			}
 		} elseif ($num_format_type=='n_datetime') {
-			$file->write('<c r="'.$cell_name.'" s="'.$cell_style_idx.'" t="n"><v>'.self::convert_date_time($value).'</v></c>');
+			$dateValue = self::convert_date_time($value);
+			if ($dateValue > 0 || preg_match("/(\d+):(\d{2}):(\d{2})/", $value)) {
+				$file->write('<c r="'.$cell_name.'" s="'.$cell_style_idx.'" t="n"><v>'.$dateValue.'</v></c>');
+			} else { //not datetime, treat it as string
+				$file->write('<c r="'.$cell_name.'" s="'.$cell_style_idx.'" t="inlineStr"><is><t>'.self::xmlspecialchars($value).'</t></is></c>');
+			}
 		} elseif ($num_format_type=='n_numeric') {
-			$file->write('<c r="'.$cell_name.'" s="'.$cell_style_idx.'" t="n"><v>'.self::xmlspecialchars($value).'</v></c>');//int,float,currency
+			if (!is_string($value) || $value=='0' || ($value[0]!='0' && ctype_digit($value)) || preg_match("/^\-?(0|[1-9][0-9]*)?(\.[0-9]+)?$/", $value)){
+				$file->write('<c r="'.$cell_name.'" s="'.$cell_style_idx.'" t="n"><v>'.self::xmlspecialchars($value).'</v></c>');//int,float,currency
+			} else { //not numeric, treat it as string
+				$file->write('<c r="'.$cell_name.'" s="'.$cell_style_idx.'" t="inlineStr"><is><t>'.self::xmlspecialchars($value).'</t></is></c>');
+			}
 		} elseif ($num_format_type=='n_string') {
 			$file->write('<c r="'.$cell_name.'" s="'.$cell_style_idx.'" t="inlineStr"><is><t>'.self::xmlspecialchars($value).'</t></is></c>');
 		} elseif ($num_format_type=='n_auto' || 1) { //auto-detect unknown column types
@@ -778,9 +792,9 @@ class XLSXWriter
 		if (preg_match("/[Y]{2,4}/i", $num_format)) return 'n_date';
 		if (preg_match("/[D]{1,2}/i", $num_format)) return 'n_date';
 		if (preg_match("/[M]{1,2}/i", $num_format)) return 'n_date';
-		if (preg_match("/$/", $num_format)) return 'n_numeric';
-		if (preg_match("/%/", $num_format)) return 'n_numeric';
-		if (preg_match("/0/", $num_format)) return 'n_numeric';
+		if (preg_match('/\$/', $num_format)) return 'n_numeric';
+		if (preg_match('/%/', $num_format)) return 'n_numeric';
+		if (preg_match('/[0#?]/', $num_format)) return 'n_numeric';
 		return 'n_auto';
 	}
 	//------------------------------------------------------------------
