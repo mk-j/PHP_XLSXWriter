@@ -1,9 +1,9 @@
 {
-    "name": "mk-j/php_xlsxwriter",
-    "description": "PHP Library to write XLSX files",
+    "name": "athena-metis/php_xlsxwriter",
+    "description": "PHP Library to write XLSX files (Fork of mk-j/php_xlsxwriter)",
     "keywords": ["php", "library","xls", "xlsx", "excel"],
     "type": "project",
-    "homepage": "https://github.com/mk-j/PHP_XLSXWriter",
+    "homepage": "https://github.com/athena-metis/PHP_XLSXWriter",
     "license": "MIT",
 
     "autoload": {
