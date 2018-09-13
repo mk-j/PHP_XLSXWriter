@@ -27,7 +27,7 @@ class XLSXWriter
 
 	public function __construct()
 	{
-		if(!ini_get('date.timezone'))
+		if(!date_default_timezone_get())
 		{
 			//using date functions can kick out warning if this isn't set
 			date_default_timezone_set('UTC');
