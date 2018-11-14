@@ -747,7 +747,7 @@ class XLSXWriter
 		static $badchars  = '\\/?*:[]';
 		static $goodchars = '        ';
 		$sheetname = strtr($sheetname, $badchars, $goodchars);
-		$sheetname = substr($sheetname, 0, 31);
+		$sheetname = mb_substr($sheetname, 0, 31);
 		$sheetname = trim(trim(trim($sheetname),"'"));//trim before and after trimming single quotes
 		return !empty($sheetname) ? $sheetname : 'Sheet'.((rand()%900)+100);
 	}
