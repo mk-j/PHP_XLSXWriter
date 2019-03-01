@@ -120,6 +120,21 @@ class XLSXWriter
 		$zip->close();
 	}
 
+	public function writeToStdOutAsAttachment($filename)
+	{
+		if (!preg_match('/\.xlsx$/', $filename))
+			$filename .= '.xlsx';
+		$content = $this->writeToString();
+		header('Content-Disposition: attachment; filename='.$filename);
+		header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+		header('Content-Length: '.strlen($content));
+		header('Content-Transfer-Encoding: binary');
+		header('Cache-Control: must-revalidate');
+		header('Pragma: public');
+		echo $content;
+		die();
+	}
+
 	protected function initializeSheet($sheet_name, $col_widths=array(), $auto_filter=false, $freeze_rows=false, $freeze_columns=false )
 	{
 		//if already initialized
