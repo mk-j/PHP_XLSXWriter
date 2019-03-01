@@ -66,20 +66,24 @@ class XLSXWriter
 	public function writeToStdOut()
 	{
 		$temp_file = $this->tempFilename();
-		self::writeToFile($temp_file);
+		self::writeToFile($temp_file, true);
 		readfile($temp_file);
 	}
 
 	public function writeToString()
 	{
 		$temp_file = $this->tempFilename();
-		self::writeToFile($temp_file);
+		self::writeToFile($temp_file, true);
 		$string = file_get_contents($temp_file);
 		return $string;
 	}
 
-	public function writeToFile($filename)
+	public function writeToFile($filename, $forceCreateFile=false)
 	{
+        // Create an empty sheet on forceCreateFile
+	    if (empty($this->sheets) and $forceCreateFile)
+	        $this->writeSheetRow('Sheet1', array(''));
+
 		foreach($this->sheets as $sheet_name => $sheet) {
 			self::finalizeSheet($sheet_name);//making sure all footers have been written
 		}
