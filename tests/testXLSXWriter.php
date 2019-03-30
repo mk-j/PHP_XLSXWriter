@@ -11,6 +11,10 @@ namespace Mkj\XLSXWriter;
 require __DIR__ . '/../vendor/autoload.php';
 
 use PHPUnit\Framework\TestCase;
+use SimpleXMLElement;
+use XLSXWriter_BuffererWriter;
+use ZipArchive;
+
 
 class testPHPXLSXWriter extends TestCase
 {
@@ -23,7 +27,7 @@ class testPHPXLSXWriter extends TestCase
     /**
      *
      */
-    function testFirstTestCase()
+    public function testFirstTestCase()
     {
         $writer = new XLSXWriter();
         $writer->setAuthor('Some Author');
@@ -46,7 +50,7 @@ class testPHPXLSXWriter extends TestCase
         unlink($filename);
     }
 
-    function testSimpleXLSX()
+    public function testSimpleXLSX()
     {
         $filename = "xlsx-simple.xlsx";
         $writer = new XLSXWriter();
@@ -81,7 +85,7 @@ class testPHPXLSXWriter extends TestCase
         unlink($filename);
     }
 
-    function testMultipleXLSX()
+    public function testMultipleXLSX()
     {
 
         $filename = "xlsx-sheets.xlsx";
@@ -120,7 +124,7 @@ class testPHPXLSXWriter extends TestCase
     }
 
 
-    function testFormats()
+    public function testFormats()
     {
 
         $filename = "xlsx-formats.xlsx";
@@ -179,7 +183,7 @@ class testPHPXLSXWriter extends TestCase
         unlink($filename);
     }
 
-    function testStyles()
+    public function testStyles()
     {
 
         $filename = "xlsx-styles.xlsx";
@@ -211,7 +215,7 @@ class testPHPXLSXWriter extends TestCase
         unlink($filename);
     }
 
-    function testColors()
+    public function testColors()
     {
 
         $filename = "xlsx-colors.xlsx";
@@ -236,7 +240,7 @@ class testPHPXLSXWriter extends TestCase
         unlink($filename);
     }
 
-    function testNumber250K()
+    public function testNumber250K()
     {
 
         $filename = "xlsx-numbers-250k.xlsx";
@@ -254,7 +258,7 @@ class testPHPXLSXWriter extends TestCase
         unlink($filename);
     }
 
-    function testString250K()
+    public function testString250K()
     {
         $chars = "abcdefghijklmnopqrstuvwxyz0123456789 ";
         $s = '';
@@ -280,7 +284,7 @@ class testPHPXLSXWriter extends TestCase
         unlink($filename);
     }
 
-    function testWidths()
+    public function testWidths()
     {
 
         $filename = "xlsx-widths.xlsx";
@@ -299,7 +303,7 @@ class testPHPXLSXWriter extends TestCase
     }
 
 
-    function testAdvanced()
+    public function testAdvanced()
     {
 
         $filename = "xlsx-advanced.xlsx";
@@ -356,7 +360,7 @@ class testPHPXLSXWriter extends TestCase
     }
 
 
-    function testAutofilter()
+    public function testAutofilter()
     {
 
         $filename = "xlsx-autofilter.xlsx";
@@ -381,7 +385,7 @@ class testPHPXLSXWriter extends TestCase
         unlink($filename);
     }
 
- function testFreezeRowsColumns()
+    public function testFreezeRowsColumns()
     {
 
         $filename = "xlsx-freeze-rows-columns.xlsx";
@@ -389,15 +393,14 @@ class testPHPXLSXWriter extends TestCase
         $chars = 'abcdefgh';
 
         $writer = new XLSXWriter();
-        $writer->writeSheetHeader('Sheet1', array('c1'=>'string','c2'=>'integer','c3'=>'integer','c4'=>'integer','c5'=>'integer'), ['freeze_rows'=>1, 'freeze_columns'=>1] );
-        for($i=0; $i<250; $i++)
-        {
+        $writer->writeSheetHeader('Sheet1', array('c1' => 'string', 'c2' => 'integer', 'c3' => 'integer', 'c4' => 'integer', 'c5' => 'integer'), ['freeze_rows' => 1, 'freeze_columns' => 1]);
+        for ($i = 0; $i < 250; $i++) {
             $writer->writeSheetRow('Sheet1', array(
                 str_shuffle($chars),
-                rand()%10000,
-                rand()%10000,
-                rand()%10000,
-                rand()%10000
+                rand() % 10000,
+                rand() % 10000,
+                rand() % 10000,
+                rand() % 10000
             ));
         }
 
@@ -409,4 +412,109 @@ class testPHPXLSXWriter extends TestCase
         unlink($filename);
     }
 
+    /**
+     * @covers XLSXWriter::writeCell
+     */
+    public function testWriteCell()
+    {
+        // @todo Need to improve this test
+
+        $filename = tempnam("/tmp", "xlsx_writer");
+        $file_writer = new XLSXWriter_BuffererWriter($filename);
+        $xlsx_writer = new _XLSXWriter_();
+
+//        $xlsx_writer->writeCell($file_writer, 0, 0, '0123', 'string', 'GENERAL;');
+//        $file_writer->close();
+//        $cell_xml = file_get_contents($filename);
+//        $this->assertNotEquals('<c r="A1" s="0" t="n"><v>123</v></c>', $cell_xml);
+//        $this->assertEquals('<c r="A1" s="0" t="s"><v>0</v></c>', $cell_xml);//0123 should be the 0th index of the shared string array
+        $this->assertEquals(1,1);
+        @unlink($filename);
+    }
+
+    /**
+     * @covers XLSXWriter::writeToFile
+     */
+    public function testWriteToFile()
+    {
+        $filename = tempnam("/tmp", "xlsx_writer");
+
+        $header = array('0' => 'string', '1' => 'string', '2' => 'string', '3' => 'string');
+        $sheet = array(
+            array('55', '66', '77', '88'),
+            array('10', '11', '12', '13'),
+        );
+
+        $xlsx_writer = new XLSXWriter();
+        $xlsx_writer->writeSheet($sheet, 'mysheet', $header);
+        $xlsx_writer->writeToFile($filename);
+
+        $zip = new ZipArchive();
+        $r = $zip->open($filename);
+        $this->assertTrue($r);
+
+        $r = $zip->numFiles > 0 ? true : false;
+        $this->assertTrue($r);
+
+        $out_sheet = array();
+        for ($z = 0; $z < $zip->numFiles; $z++) {
+            $inside_zip_filename = $zip->getNameIndex($z);
+            if (preg_match("/sheet(\d+).xml/", basename($inside_zip_filename))) {
+                $out_sheet = $this->stripCellsFromSheetXML($zip->getFromName($inside_zip_filename));
+                array_shift($out_sheet);
+                $out_sheet = array_values($out_sheet);
+            }
+        }
+        $zip->close();
+        @unlink($filename);
+
+        $r1 = self::array_diff_assoc_recursive($out_sheet, $sheet);
+        $r2 = self::array_diff_assoc_recursive($sheet, $out_sheet);
+
+        $this->assertEmpty($r1[0][0]);
+    }
+
+    private function stripCellsFromSheetXML($sheet_xml)
+    {
+        $output = array();
+        $xml = new SimpleXMLElement($sheet_xml);
+        $i = 0;
+        foreach ($xml->sheetData->row as $row) {
+            $j = 0;
+            foreach ($row->c as $c) {
+                $output[$i][$j] = (string)$c->v;
+                $j++;
+            }
+            $i++;
+        }
+        return $output;
+    }
+
+    public static function array_diff_assoc_recursive($array1, $array2)
+    {
+        foreach ($array1 as $key => $value) {
+            if (is_array($value)) {
+                if (!isset($array2[$key]) || !is_array($array2[$key])) {
+                    $difference[$key] = $value;
+                } else {
+                    $new_diff = self::array_diff_assoc_recursive($value, $array2[$key]);
+                    if (!empty($new_diff)) {
+                        $difference[$key] = $new_diff;
+                    }
+                }
+            } else if (!isset($array2[$key]) || $array2[$key] != $value) {
+                $difference[$key] = $value;
+            }
+        }
+        return !isset($difference) ? array() : $difference;
+    }
+
+}
+
+class _XLSXWriter_ extends XLSXWriter
+{
+    public function writeCell(XLSXWriter_BuffererWriter &$file, $row_number, $column_number, $value, $cell_format, $cell_style_idx)
+    {
+        return call_user_func_array('parent::writeCell', func_get_args());
+    }
 }
