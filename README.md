@@ -13,6 +13,12 @@ It is designed to output an Excel compatible spreadsheet in (Office 2007+) xlsx 
 
 [Never run out of memory with PHPExcel again](https://github.com/mk-j/PHP_XLSXWriter).
 
+## Install 
+Clone this repository
+```bash
+composer install
+```
+
 Simple PHP CLI example:
 ```php
 $data = array(
