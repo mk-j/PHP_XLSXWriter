@@ -7,13 +7,29 @@
     "license": "MIT",
 
     "autoload": {
-        "classmap": ["xlsxwriter.class.php"]
+        "classmap": ["xlsxwriter.class.php"],
+        "psr-0": {
+            "Mkj\\XLSXWriter\\": "src/",
+            "Mkj\\XLSXWriter\\Test\\": "tests/"
+        },
+        "psr-4": {
+            "Mkj\\XLSXWriter\\": "src/",
+            "Mkj\\XLSXWriter\\Test\\": "tests/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Mkj\\XLSXWriter\\": "src/",
+            "Mkj\\XLSXWriter\\Test\\": "tests/"
+        }
     },
     "require-dev": {
-        "phpunit/phpunit": "4.3.*"
+        "phpunit/phpunit": "^7.4@dev"
     },
     "require": {
         "php": ">=5.2.1",
-        "ext-zip": "*"
+        "ext-zip": "*",
+        "phpunit/phpunit": "^7.4@dev"
     }
+
 }

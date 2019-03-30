@@ -1,0 +1,14 @@
+<?xml version="1.0"?>
+<phpunit colors="true" bootstrap="../vendor/autoload.php">
+    <testsuites>
+        <testsuite name="XLSXWriter Test Suite">
+            <directory suffix="*.php">./tests/</directory>
+        </testsuite>
+    </testsuites>
+    <filter>
+        <whitelist processUncoveredFilesFromWhitelist="true">
+            <directory suffix=".php">../src</directory>
+        </whitelist>
+    </filter>
+</phpunit>
+
