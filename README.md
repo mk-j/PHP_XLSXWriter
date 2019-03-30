@@ -24,6 +24,15 @@ composer install
 
 Simple PHP CLI example:
 ```php
+namespace Mkj\XLSXWriter;
+
+require __DIR__ . '/vendor/autoload.php';
+
+$writer = new XLSXWriter();
+$writer->setAuthor('Some Author');
+
+$filename = "example.xlsx";
+
 $data = array(
     array('year','month','amount'),
     array('2003','1','220'),
@@ -32,11 +41,15 @@ $data = array(
 
 $writer = new XLSXWriter();
 $writer->writeSheet($data);
-$writer->writeToFile('output.xlsx');
+$writer->writeToFile($filename);
 ```
 
 Simple/Advanced Cell Formats:
 ```php
+namespace Mkj\XLSXWriter;
+
+require __DIR__ . '/vendor/autoload.php';
+
 $header = array(
   'created'=>'date',
   'product_id'=>'integer',
