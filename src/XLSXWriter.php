@@ -35,7 +35,7 @@ class XLSXWriter
     protected $temp_files = array();
     protected $cell_styles = array();
     protected $number_formats = array();
-    protected $default_height = 12.1;
+    public $default_height = 12.1;
 
     public function __construct()
     {
