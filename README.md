@@ -14,8 +14,11 @@ It is designed to output an Excel compatible spreadsheet in (Office 2007+) xlsx 
 [Never run out of memory with PHPExcel again](https://github.com/mk-j/PHP_XLSXWriter).
 
 ## Install 
-Clone this repository
+Clone this repository and then execute `composer install`
+
 ```bash
+git clone https://github.com/elminson/PHP_XLSXWriter.git
+cd PHP_XLSXWriter
 composer install
 ```
 
