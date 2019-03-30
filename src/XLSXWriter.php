@@ -297,7 +297,7 @@ class XLSXWriter
         if (!$suppress_row) {
             $header_row = array_keys($header_types);
 
-            $sheet->file_writer->write('<row collapsed="false" customFormat="false" customHeight="false" hidden="false" ht="'.$this->default_height.'" outlineLevel="0" r="' . (1) . '">');
+            $sheet->file_writer->write('<row collapsed="false" customFormat="false" customHeight="false" hidden="false" ht="' . $this->default_height . '" outlineLevel="0" r="' . (1) . '">');
             foreach ($header_row as $c => $v) {
                 $cell_style_idx = empty($style) ? $sheet->columns[$c]['default_cell_style'] : $this->addCellStyle('GENERAL', json_encode(isset($style[0]) ? $style[$c] : $style));
                 $this->writeCell($sheet->file_writer, 0, $c, $v, $number_format_type = 'n_string', $cell_style_idx);
@@ -332,7 +332,7 @@ class XLSXWriter
             $collapsed = isset($row_options['collapsed']) ? (bool)($row_options['collapsed']) : false;
             $sheet->file_writer->write('<row collapsed="' . ($collapsed) . '" customFormat="false" customHeight="' . ($customHt) . '" hidden="' . ($hidden) . '" ht="' . ($ht) . '" outlineLevel="0" r="' . ($sheet->row_count + 1) . '">');
         } else {
-            $sheet->file_writer->write('<row collapsed="false" customFormat="false" customHeight="false" hidden="false" ht="'.$this->default_height.'" outlineLevel="0" r="' . ($sheet->row_count + 1) . '">');
+            $sheet->file_writer->write('<row collapsed="false" customFormat="false" customHeight="false" hidden="false" ht="' . $this->default_height . '" outlineLevel="0" r="' . ($sheet->row_count + 1) . '">');
         }
 
         $style = &$row_options;
@@ -657,25 +657,15 @@ class XLSXWriter
         $file->write('<alignment horizontal="general" indent="0" shrinkToFit="false" textRotation="0" vertical="bottom" wrapText="false"/>');
         $file->write('<protection hidden="false" locked="true"/>');
         $file->write('</xf>');
-        $file->write('<xf applyAlignment="false" applyBorder="false" applyFont="true" applyProtection="false" borderId="0" fillId="0" fontId="1" numFmtId="0"/>');
-        $file->write('<xf applyAlignment="false" applyBorder="false" applyFont="true" applyProtection="false" borderId="0" fillId="0" fontId="1" numFmtId="0"/>');
-        $file->write('<xf applyAlignment="false" applyBorder="false" applyFont="true" applyProtection="false" borderId="0" fillId="0" fontId="2" numFmtId="0"/>');
-        $file->write('<xf applyAlignment="false" applyBorder="false" applyFont="true" applyProtection="false" borderId="0" fillId="0" fontId="2" numFmtId="0"/>');
-        $file->write('<xf applyAlignment="false" applyBorder="false" applyFont="true" applyProtection="false" borderId="0" fillId="0" fontId="0" numFmtId="0"/>');
-        $file->write('<xf applyAlignment="false" applyBorder="false" applyFont="true" applyProtection="false" borderId="0" fillId="0" fontId="0" numFmtId="0"/>');
-        $file->write('<xf applyAlignment="false" applyBorder="false" applyFont="true" applyProtection="false" borderId="0" fillId="0" fontId="0" numFmtId="0"/>');
-        $file->write('<xf applyAlignment="false" applyBorder="false" applyFont="true" applyProtection="false" borderId="0" fillId="0" fontId="0" numFmtId="0"/>');
-        $file->write('<xf applyAlignment="false" applyBorder="false" applyFont="true" applyProtection="false" borderId="0" fillId="0" fontId="0" numFmtId="0"/>');
-        $file->write('<xf applyAlignment="false" applyBorder="false" applyFont="true" applyProtection="false" borderId="0" fillId="0" fontId="0" numFmtId="0"/>');
-        $file->write('<xf applyAlignment="false" applyBorder="false" applyFont="true" applyProtection="false" borderId="0" fillId="0" fontId="0" numFmtId="0"/>');
-        $file->write('<xf applyAlignment="false" applyBorder="false" applyFont="true" applyProtection="false" borderId="0" fillId="0" fontId="0" numFmtId="0"/>');
-        $file->write('<xf applyAlignment="false" applyBorder="false" applyFont="true" applyProtection="false" borderId="0" fillId="0" fontId="0" numFmtId="0"/>');
-        $file->write('<xf applyAlignment="false" applyBorder="false" applyFont="true" applyProtection="false" borderId="0" fillId="0" fontId="0" numFmtId="0"/>');
-        $file->write('<xf applyAlignment="false" applyBorder="false" applyFont="true" applyProtection="false" borderId="0" fillId="0" fontId="1" numFmtId="43"/>');
-        $file->write('<xf applyAlignment="false" applyBorder="false" applyFont="true" applyProtection="false" borderId="0" fillId="0" fontId="1" numFmtId="41"/>');
-        $file->write('<xf applyAlignment="false" applyBorder="false" applyFont="true" applyProtection="false" borderId="0" fillId="0" fontId="1" numFmtId="44"/>');
-        $file->write('<xf applyAlignment="false" applyBorder="false" applyFont="true" applyProtection="false" borderId="0" fillId="0" fontId="1" numFmtId="42"/>');
-        $file->write('<xf applyAlignment="false" applyBorder="false" applyFont="true" applyProtection="false" borderId="0" fillId="0" fontId="1" numFmtId="9"/>');
+        $this->whiteCellStyleXfs($file, 1, 2);
+        $this->whiteCellStyleXfs($file, 2, 2);
+        $this->whiteCellStyleXfs($file, 0, 10);
+        $this->whiteCellStyleXfs($file, 0, 10);
+        $this->whiteCellStyleXfs($file, 1, 1, 43);
+        $this->whiteCellStyleXfs($file, 1, 1, 41);
+        $this->whiteCellStyleXfs($file, 1, 1, 44);
+        $this->whiteCellStyleXfs($file, 1, 1, 42);
+        $this->whiteCellStyleXfs($file, 1, 1, 9);
         $file->write('</cellStyleXfs>');
 
         $file->write('<cellXfs count="' . (count($style_indexes)) . '">');
@@ -711,6 +701,19 @@ class XLSXWriter
         $file->write('</styleSheet>');
         $file->close();
         return $temporary_filename;
+    }
+
+    /**
+     * @param $file
+     * @param int $fontId
+     * @param int $qty
+     * @param int $numFmtId
+     */
+    protected function whiteCellStyleXfs($file, $fontId = 1, $qty = 1, $numFmtId = 0)
+    {
+        for ($index = 0; $index < $qty; $index++) {
+            $file->write('<xf applyAlignment="false" applyBorder="false" applyFont="true" applyProtection="false" borderId="0" fillId="0" fontId="' . $fontId . '" numFmtId="' . $numFmtId . '"/>');
+        }
     }
 
     /**
@@ -1073,9 +1076,9 @@ class XLSXWriter
         $fh = fopen($filename, 'r');
 
 // Redirect output to a client’s web browser (Excel5)
-        header('Content-disposition: attachment; filename="'.XLSXWriter::sanitize_filename($filename).'"');
+        header('Content-disposition: attachment; filename="' . XLSXWriter::sanitize_filename($filename) . '"');
         header("Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
-        header('Content-Disposition: attachment;filename="'.$filename.'"');
+        header('Content-Disposition: attachment;filename="' . $filename . '"');
         header('Cache-Control: max-age=0');
 // If you're serving to IE 9, then the following may be needed
         header('Cache-Control: max-age=1');
