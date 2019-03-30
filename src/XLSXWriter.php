@@ -35,6 +35,7 @@ class XLSXWriter
     protected $temp_files = array();
     protected $cell_styles = array();
     protected $number_formats = array();
+    protected $default_height = 12.1;
 
     public function __construct()
     {
@@ -296,7 +297,7 @@ class XLSXWriter
         if (!$suppress_row) {
             $header_row = array_keys($header_types);
 
-            $sheet->file_writer->write('<row collapsed="false" customFormat="false" customHeight="false" hidden="false" ht="12.1" outlineLevel="0" r="' . (1) . '">');
+            $sheet->file_writer->write('<row collapsed="false" customFormat="false" customHeight="false" hidden="false" ht="'.$this->default_height.'" outlineLevel="0" r="' . (1) . '">');
             foreach ($header_row as $c => $v) {
                 $cell_style_idx = empty($style) ? $sheet->columns[$c]['default_cell_style'] : $this->addCellStyle('GENERAL', json_encode(isset($style[0]) ? $style[$c] : $style));
                 $this->writeCell($sheet->file_writer, 0, $c, $v, $number_format_type = 'n_string', $cell_style_idx);
@@ -325,13 +326,13 @@ class XLSXWriter
         }
 
         if (!empty($row_options)) {
-            $ht = isset($row_options['height']) ? floatval($row_options['height']) : 12.1;
+            $ht = isset($row_options['height']) ? floatval($row_options['height']) : $this->default_height;
             $customHt = isset($row_options['height']) ? true : false;
             $hidden = isset($row_options['hidden']) ? (bool)($row_options['hidden']) : false;
             $collapsed = isset($row_options['collapsed']) ? (bool)($row_options['collapsed']) : false;
             $sheet->file_writer->write('<row collapsed="' . ($collapsed) . '" customFormat="false" customHeight="' . ($customHt) . '" hidden="' . ($hidden) . '" ht="' . ($ht) . '" outlineLevel="0" r="' . ($sheet->row_count + 1) . '">');
         } else {
-            $sheet->file_writer->write('<row collapsed="false" customFormat="false" customHeight="false" hidden="false" ht="12.1" outlineLevel="0" r="' . ($sheet->row_count + 1) . '">');
+            $sheet->file_writer->write('<row collapsed="false" customFormat="false" customHeight="false" hidden="false" ht="'.$this->default_height.'" outlineLevel="0" r="' . ($sheet->row_count + 1) . '">');
         }
 
         $style = &$row_options;
