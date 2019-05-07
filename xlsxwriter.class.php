@@ -248,7 +248,13 @@ class XLSXWriter
 		if (empty($sheet_name))
 			return;
 
-		self::initializeSheet($sheet_name);
+		$row_widths = isset($row_options['widths']) ? (array)$row_options['widths'] : array();
+		$auto_filter = isset($row_options['auto_filter']) ? intval($row_options['auto_filter']) : false;
+		$freeze_rows = isset($row_options['freeze_rows']) ? intval($row_options['freeze_rows']) : false;
+		$freeze_columns = isset($row_options['freeze_columns']) ? intval($row_options['freeze_columns']) : false;
+		
+		self::initializeSheet($sheet_name, $row_widths, $auto_filter, $freeze_rows, $freeze_columns);
+
 		$sheet = &$this->sheets[$sheet_name];
 		if (count($sheet->columns) < count($row)) {
 			$default_column_types = $this->initializeColumnTypes( array_fill($from=0, $until=count($row), 'GENERAL') );//will map to n_auto
@@ -258,9 +264,9 @@ class XLSXWriter
 		if (!empty($row_options))
 		{
 			$ht = isset($row_options['height']) ? floatval($row_options['height']) : 12.1;
-			$customHt = isset($row_options['height']) ? true : false;
-			$hidden = isset($row_options['hidden']) ? (bool)($row_options['hidden']) : false;
-			$collapsed = isset($row_options['collapsed']) ? (bool)($row_options['collapsed']) : false;
+			$customHt = isset($row_options['height']) ? 'true' : 'false';
+			$hidden = isset($row_options['hidden']) ? (bool)($row_options['hidden']) : 'false';
+			$collapsed = isset($row_options['collapsed']) ? (bool)($row_options['collapsed']) : 'false';
 			$sheet->file_writer->write('<row collapsed="'.($collapsed).'" customFormat="false" customHeight="'.($customHt).'" hidden="'.($hidden).'" ht="'.($ht).'" outlineLevel="0" r="' . ($sheet->row_count + 1) . '">');
 		}
 		else
@@ -271,7 +277,9 @@ class XLSXWriter
 		$style = &$row_options;
 		$c=0;
 		foreach ($row as $v) {
-			$number_format = $sheet->columns[$c]['number_format'];
+			if (isset($row_options['row-format'])) { $number_format = $row_options['row-format'][$c]; }
+			else { $number_format = $sheet->columns[$c]['number_format']; }
+			
 			$number_format_type = $sheet->columns[$c]['number_format_type'];
 			$cell_style_idx = empty($style) ? $sheet->columns[$c]['default_cell_style'] : $this->addCellStyle( $number_format, json_encode(isset($style[0]) ? $style[$c] : $style) );
 			$this->writeCell($sheet->file_writer, $sheet->row_count, $c, $v, $number_format_type, $cell_style_idx);
