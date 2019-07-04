@@ -1,0 +1,22 @@
+dist: trusty
+sudo: required
+
+language: php
+
+php:
+  - 7.1
+
+install:
+  - composer validate --no-check-all --no-check-publish
+  - composer install
+
+script:  ./vendor/bin/phpunit --coverage-clover=coverage.xml Test/
+
+after_success:
+  - bash <(curl -s https://codecov.io/bash)
+
+cache:
+  apt: true
+  directories:
+    - $TRAVIS_BUILD_DIR/vendor
+    - $HOME/.composer/cache
