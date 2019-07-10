@@ -20,6 +20,12 @@ class XLSXWriter
 
 	protected $current_sheet = '';
 
+	protected $title;
+	protected $subject;
+	protected $company;
+	protected $description;
+	protected $keywords = [];
+
 	public function __construct()
 	{
 		if(!ini_get('date.timezone'))
@@ -30,10 +36,20 @@ class XLSXWriter
 	}
 
 	public function setAuthor($author='') { $this->author=$author; }
+	public function setTitle($title='') { $this->title=$title; }
+	public function setSubject($subject='') { $this->subject=$subject; }
+	public function setCompany($company='') { $this->company=$company; }
+	public function setKeywords($keywords=[]) { $this->keywords=$keywords; }
+	public function setDescription($description='') { $this->description=$description; }
 
 	public function getFileProperties(): array {
 		return [
 			"author" => $this->author,
+			"title" => $this->title,
+			"subject" => $this->subject,
+			"company" => $this->company,
+			"keywords" => $this->keywords,
+			"description" => $this->description,
 		];
 	}
 
@@ -415,7 +431,10 @@ class XLSXWriter
 	{
 		$app_xml="";
 		$app_xml.='<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'."\n";
-		$app_xml.='<Properties xmlns="http://schemas.openxmlformats.org/officeDocument/2006/extended-properties" xmlns:vt="http://schemas.openxmlformats.org/officeDocument/2006/docPropsVTypes"><TotalTime>0</TotalTime></Properties>';
+		$app_xml.='<Properties xmlns="http://schemas.openxmlformats.org/officeDocument/2006/extended-properties" xmlns:vt="http://schemas.openxmlformats.org/officeDocument/2006/docPropsVTypes">';
+		$app_xml.='<TotalTime>0</TotalTime>';
+		$app_xml.='<Company>'.self::xmlspecialchars($this->company).'</Company>';
+		$app_xml.='</Properties>';
 		return $app_xml;
 	}
 
@@ -425,7 +444,13 @@ class XLSXWriter
 		$core_xml.='<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'."\n";
 		$core_xml.='<cp:coreProperties xmlns:cp="http://schemas.openxmlformats.org/package/2006/metadata/core-properties" xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:dcmitype="http://purl.org/dc/dcmitype/" xmlns:dcterms="http://purl.org/dc/terms/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">';
 		$core_xml.='<dcterms:created xsi:type="dcterms:W3CDTF">'.date("Y-m-d\TH:i:s.00\Z").'</dcterms:created>';//$date_time = '2014-10-25T15:54:37.00Z';
+		$core_xml.='<dc:title>'.self::xmlspecialchars($this->title).'</dc:title>';
+		$core_xml.='<dc:subject>'.self::xmlspecialchars($this->subject).'</dc:subject>';
 		$core_xml.='<dc:creator>'.self::xmlspecialchars($this->author).'</dc:creator>';
+		if (!empty($this->keywords)) {
+			$core_xml.='<cp:keywords>'.self::xmlspecialchars(implode (", ", (array)$this->keywords)).'</cp:keywords>';
+		}
+		$core_xml.='<dc:description>'.self::xmlspecialchars($this->description).'</dc:description>';
 		$core_xml.='<cp:revision>0</cp:revision>';
 		$core_xml.='</cp:coreProperties>';
 		return $core_xml;
