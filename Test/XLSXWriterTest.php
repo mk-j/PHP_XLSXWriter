@@ -78,6 +78,45 @@ class XLSXWriterTest extends TestCase
 		$this->assertEmpty($r2);
 	}
 
+	public function testMarkMergedCells() {
+		$filename = tempnam("/tmp", "xlsx_writer");
+
+		$header = ['0'=>'string','1'=>'string','2'=>'string','3'=>'string'];
+		$sheet = [
+			['55','66','77','88'],
+			['10','11','12','13'],
+		];
+
+		$expected_merged_range = "B2:C3";
+
+		$xlsx_writer = new XLSXWriter();
+		$xlsx_writer->writeSheetHeader('mysheet', $header);
+		$xlsx_writer->writeSheetRow('mysheet', $sheet[0]);
+		$xlsx_writer->writeSheetRow('mysheet', $sheet[1]);
+		$xlsx_writer->markMergedCell('mysheet', 1, 1, 2, 2);
+		$xlsx_writer->writeToFile($filename);
+
+		$zip = new ZipArchive();
+		$r = $zip->open($filename);
+		$this->assertTrue($r);
+
+		$this->assertNotEmpty(($zip->numFiles));
+
+		for($z=0; $z < $zip->numFiles; $z++) {
+			$inside_zip_filename = $zip->getNameIndex($z);
+			$sheet_xml = $zip->getFromName($inside_zip_filename);
+			if (preg_match("/sheet(\d+).xml/", basename($inside_zip_filename))) {
+				$xml = new SimpleXMLElement($sheet_xml);
+				$merged_cell_range = $xml->mergeCells->mergeCell["ref"][0];
+
+				$this->assertEquals($expected_merged_range, $merged_cell_range);
+			}
+		}
+
+		$zip->close();
+		@unlink($filename);
+	}
+
 	private function stripCellsFromSheetXML($sheet_xml) {
 		$output = [];
 
