@@ -118,7 +118,7 @@ class XLSXWriter
 		$zip->close();
 	}
 
-	protected function initializeSheet($sheet_name, $freeze_rows=false, $freeze_columns=false)
+	protected function initializeSheet($sheet_name, $col_widths = [], $freeze_rows=false, $freeze_columns=false)
 	{
 		//if already initialized
 		if ($this->current_sheet==$sheet_name || isset($this->sheets[$sheet_name]))
@@ -172,7 +172,16 @@ class XLSXWriter
 		$sheet->file_writer->write(    '</sheetView>');
 		$sheet->file_writer->write(  '</sheetViews>');
 		$sheet->file_writer->write(  '<cols>');
-		$sheet->file_writer->write(    '<col collapsed="false" hidden="false" max="1025" min="1" style="0" width="11.5"/>');
+
+		$cols_count = count($col_widths);
+
+		if (!empty($col_widths)) {
+			foreach($col_widths as $i => $column_width) {
+				$sheet->file_writer->write(    '<col collapsed="false" hidden="false" max="'. ($i + 1) .'" min="'. ($i + 1) .'" style="0" customWidth="true" width="'.floatval($column_width).'"/>');
+			}
+		}
+		$sheet->file_writer->write(    '<col collapsed="false" hidden="false" max="1024" min="'. ($cols_count + 1) .'" style="0" customWidth="false" width="11.5"/>');
+
 		$sheet->file_writer->write(  '</cols>');
 		$sheet->file_writer->write(  '<sheetData>');
 	}
@@ -201,10 +210,11 @@ class XLSXWriter
 			$start = 0;
 		}
 
+		$col_widths = (!empty($col_options['widths'])) ? (array)$col_options['widths'] : [];
 		$freeze_rows = (array_key_exists('freeze_rows', $col_options) && $col_options['freeze_rows'] !== false) ? intval($col_options['freeze_rows']) : false;
 		$freeze_columns = (array_key_exists('freeze_columns', $col_options) && $col_options['freeze_columns'] !== false) ? intval($col_options['freeze_columns']) : false;
 
-		self::initializeSheet($sheet_name, $freeze_rows, $freeze_columns);
+		self::initializeSheet($sheet_name, $col_widths, $freeze_rows, $freeze_columns);
 		$sheet = &$this->sheets[$sheet_name];
 		$sheet->cell_formats = array_values($header_types);
 		$header_row = array_keys($header_types);
