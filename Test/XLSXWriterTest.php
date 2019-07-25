@@ -12,8 +12,8 @@ use ZipArchive;
 
 class _XLSXWriter_ extends XLSXWriter
 {
-	public function writeCell(XLSXWriter_BuffererWriter &$file, $row_number, $column_number, $value, $cell_format) {
-		return call_user_func_array('parent::writeCell', [&$file, $row_number, $column_number, $value, $cell_format]);
+	public function writeCell(XLSXWriter_BuffererWriter &$file, $row_number, $column_number, $value, $cell_format, $cell_style_idx = null) {
+		return call_user_func_array('parent::writeCell', [&$file, $row_number, $column_number, $value, $cell_format, $cell_style_idx = null]);
 	}
 }
 //Just a simple test, by no means comprehensive
@@ -364,6 +364,59 @@ class XLSXWriterTest extends TestCase
 		@unlink($filename);
 	}
 
+	public function testAddBorder() {
+		$filename = tempnam("/tmp", "xlsx_writer");
+
+		$header = ["0"=>"string", "1"=>"string", "2"=>"string", "3"=>"string"];
+		$sheet = [
+			["55", "66", "77", "88"],
+			["10", "11", "12", "13"],
+		];
+
+		$expected_borders = ["right", "left", "top", "bottom"];
+		$expected_border_style = "thick";
+		$expected_border_color_base = "ff99cc";
+		$expected_border_color = "FFFF99CC";
+
+		$row_options = [
+			"border" => implode(",", $expected_borders),
+			"border-style" => $expected_border_style,
+			"border-color" => "#$expected_border_color_base" ,
+		];
+
+		$xlsx_writer = new XLSXWriter();
+		$xlsx_writer->writeSheetHeader("mysheet", $header);
+		$xlsx_writer->writeSheetRow("mysheet", $sheet[0], $format = "xlsx", $delimiter = ";", $row_options);
+		$xlsx_writer->writeSheetRow("mysheet", $sheet[1]);
+		$xlsx_writer->writeToFile($filename);
+
+		$zip = new ZipArchive();
+		$r = $zip->open($filename);
+		$xml = $this->extractSheetXml($zip);
+		$styles = $this->extractStyleXml($zip);
+
+		$this->assertTrue($r);
+		$this->assertNotEmpty(($zip->numFiles));
+		$this->assertNotEmpty($xml);
+		$this->assertNotEmpty($styles);
+
+		$border_styles = $styles->borders;
+		$this->assertBorderStyle($expected_border_style, $expected_border_color, $border = $border_styles->border[1]);
+		$this->assertFillStyle($expected_pattern = "solid", $expected_bg_color = "FF003300", $styles->fills->fill[2]);
+		$this->assertFontStyle($expected_font_name = "Arial", $expected_is_bold = "true", $styles->fonts->font[4]);
+
+		$cell_styles = $styles->cellXfs->xf;
+		$this->assertCellStyle($expected_apply_border_string = "false", $expected_border_id = 0, $expected_fill_id = 2, $expected_font_id = 4, $cell_styles[6]);
+		$this->assertCellStyle($expected_apply_border_string = "true", $expected_border_id = 1, $expected_fill_id = 0, $expected_font_id = 0, $cell_styles[7]);
+
+		$rows = $xml->sheetData->row;
+		$this->assertRowHasStyleIndex($rows[0], $expected_header_style = 6);
+		$this->assertRowHasStyleIndex($rows[1], $expected_style = 7);
+
+		$zip->close();
+		@unlink($filename);
+	}
+
 	private function stripCellsFromSheetXML($sheet_xml) {
 		$output = [];
 
@@ -411,10 +464,61 @@ class XLSXWriterTest extends TestCase
 		return null;
 	}
 
+	private function extractStyleXml($zip) {
+		for($z=0; $z < $zip->numFiles; $z++) {
+			$inside_zip_filename = $zip->getNameIndex($z);
+			$xml = $zip->getFromName($inside_zip_filename);
+			if (preg_match("/styles.xml/", basename($inside_zip_filename))) {
+				return new SimpleXMLElement($xml);
+			}
+		}
+
+		return null;
+	}
+
 	private function assertRowProperties($expected_height, $expected_custom_height, $expected_hidden, $expected_collapsed, $row) {
 		$this->assertEquals($expected_height, (string)$row['ht']);
 		$this->assertEquals($expected_custom_height, filter_var($row['customHeight'], FILTER_VALIDATE_BOOLEAN));
 		$this->assertEquals($expected_hidden, filter_var($row['hidden'], FILTER_VALIDATE_BOOLEAN));
 		$this->assertEquals($expected_collapsed, filter_var($row['collapsed'], FILTER_VALIDATE_BOOLEAN));
+	}
+
+	private function assertCellStyle($expected_apply_border_string, $expected_border_id, $expected_fill_id, $expected_font_id, $cell_style) {
+		$this->assertEquals($expected_apply_border_string, $cell_style["applyBorder"]);
+		$this->assertEquals($expected_border_id, (int)$cell_style["borderId"]);
+		$this->assertEquals($expected_fill_id, (int)$cell_style["fillId"]);
+		$this->assertEquals($expected_font_id, (int)$cell_style["fontId"]);
+	}
+
+	private function assertBorderStyle($expected_border_style, $expected_border_color, $border) {
+		$this->assertEquals($expected_border_style, $border->left["style"]);
+		$this->assertEquals($expected_border_style, $border->right["style"]);
+		$this->assertEquals($expected_border_style, $border->top["style"]);
+		$this->assertEquals($expected_border_style, $border->bottom["style"]);
+
+		$this->assertEquals($expected_border_color, $border->left->color["rgb"]);
+		$this->assertEquals($expected_border_color, $border->right->color["rgb"]);
+		$this->assertEquals($expected_border_color, $border->top->color["rgb"]);
+		$this->assertEquals($expected_border_color, $border->bottom->color["rgb"]);
+	}
+
+	private function assertFillStyle($expected_pattern, $expected_bg_color, $fill) {
+		$this->assertEquals($expected_pattern, $fill->patternFill["patternType"]);
+		if (!empty($expected_bg_color)) {
+			$this->assertEquals($expected_bg_color, $fill->patternFill->bgColor["rgb"]);
+		}
+	}
+
+	private function assertFontStyle($expected_font_name, $expected_is_bold, $font) {
+ 		$this->assertEquals($expected_font_name, $font->name["val"]);
+ 		if (!empty($expected_is_bold)) {
+		    $this->assertEquals($expected_is_bold, $font->b["val"]);
+	    }
+	}
+
+	private function assertRowHasStyleIndex($row, $expected_style) {
+		foreach ($row->c as $cell) {
+			$this->assertEquals($expected_style, (int)$cell["s"]);
+		}
 	}
 }
