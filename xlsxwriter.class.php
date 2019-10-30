@@ -244,7 +244,7 @@ class XLSXWriter
 		if (empty($sheet_name))
 			return;
 
-		self::initializeSheet($sheet_name);
+		$this->initializeSheet($sheet_name);
 		$sheet = &$this->sheets[$sheet_name];
 		if (count($sheet->columns) < count($row)) {
 			$default_column_types = $this->initializeColumnTypes( array_fill($from=0, $until=count($row), 'GENERAL') );//will map to n_auto
