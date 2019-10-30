@@ -27,14 +27,10 @@ class XLSXWriter
 
 	public function __construct()
 	{
-		if(!ini_get('date.timezone'))
-		{
-			//using date functions can kick out warning if this isn't set
-			date_default_timezone_set('UTC');
-		}
-		$this->addCellStyle($number_format='GENERAL', $style_string=null);
-		$this->addCellStyle($number_format='GENERAL', $style_string=null);
-		$this->addCellStyle($number_format='GENERAL', $style_string=null);
+		defined('ENT_XML1') or define('ENT_XML1',16);//for php 5.3, avoid fatal error
+		ini_get('date.timezone') or date_default_timezone_set('UTC');//php.ini missing tz, avoid warning
+		is_writeable($this->tempFilename()) or self::log("Warning: tempdir ".sys_get_temp_dir()." not writeable, use ->setTempDir()");
+		class_exists('ZipArchive') or self::log("Error: ZipArchive class does not exist");
 		$this->addCellStyle($number_format='GENERAL', $style_string=null);
 	}
 
@@ -219,7 +215,7 @@ class XLSXWriter
 			self::log( "Warning! passing $suppress_row=false|true to writeSheetHeader() is deprecated, this will be removed in a future version." );
 			$suppress_row = intval($col_options);
 		}
-    $style = &$col_options;
+		$style = &$col_options;
 
 		$col_widths = isset($col_options['widths']) ? (array)$col_options['widths'] : array();
 		$auto_filter = isset($col_options['auto_filter']) ? intval($col_options['auto_filter']) : false;
@@ -724,14 +720,15 @@ class XLSXWriter
 			$r = chr($n%26 + 0x41) . $r;
 		}
 		if ($absolute) {
-			return '$' . $r . '$' . ($row_number+1);			
+			return '$' . $r . '$' . ($row_number+1);
 		}
 		return $r . ($row_number+1);
 	}
 	//------------------------------------------------------------------
 	public static function log($string)
 	{
-		file_put_contents("php://stderr", date("Y-m-d H:i:s:").rtrim(is_array($string) ? json_encode($string) : $string)."\n");
+		//file_put_contents("php://stderr", date("Y-m-d H:i:s:").rtrim(is_array($string) ? json_encode($string) : $string)."\n");
+		error_log(date("Y-m-d H:i:s:").rtrim(is_array($string) ? json_encode($string) : $string)."\n");
 	}
 	//------------------------------------------------------------------
 	public static function sanitize_filename($filename) //http://msdn.microsoft.com/en-us/library/aa365247%28VS.85%29.aspx
@@ -747,7 +744,7 @@ class XLSXWriter
 		static $badchars  = '\\/?*:[]';
 		static $goodchars = '        ';
 		$sheetname = strtr($sheetname, $badchars, $goodchars);
-		$sheetname = mb_substr($sheetname, 0, 31);
+		$sheetname = function_exists('mb_substr') ? mb_substr($sheetname, 0, 31) : substr($sheetname, 0, 31);
 		$sheetname = trim(trim(trim($sheetname),"'"));//trim before and after trimming single quotes
 		return !empty($sheetname) ? $sheetname : 'Sheet'.((rand()%900)+100);
 	}
