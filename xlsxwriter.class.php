@@ -790,6 +790,7 @@ class XLSXWriter
 		else if ($num_format=='integer')  $num_format='0';
 		else if ($num_format=='date')     $num_format='YYYY-MM-DD';
 		else if ($num_format=='datetime') $num_format='YYYY-MM-DD HH:MM:SS';
+        else if ($num_format=='time')     $num_format='HH:MM:SS';
 		else if ($num_format=='price')    $num_format='#,##0.00';
 		else if ($num_format=='dollar')   $num_format='[$$-1009]#,##0.00;[RED]-[$$-1009]#,##0.00';
 		else if ($num_format=='euro')     $num_format='#,##0.00 [$€-407];[RED]-#,##0.00 [$€-407]';
@@ -862,9 +863,12 @@ class XLSXWriter
 		$mdays = array( 31, ($leap ? 29 : 28), 31, 30, 31, 30, 31, 31, 30, 31, 30, 31 );
 
 		# Some boundary checks
-		if($year < $epoch || $year > 9999) return 0;
-		if($month < 1     || $month > 12)  return 0;
-		if($day < 1       || $day > $mdays[ $month - 1 ]) return 0;
+		if ($year!=0 || $month !=0 || $day!=0)
+		{
+			if($year < $epoch || $year > 9999) return 0;
+			if($month < 1     || $month > 12)  return 0;
+			if($day < 1       || $day > $mdays[ $month - 1 ]) return 0;
+		}
 
 		# Accumulate the number of days since the epoch.
 		$days = $day;    # Add days for current month
