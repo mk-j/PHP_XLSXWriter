@@ -15,6 +15,7 @@ class XLSXWriter
 	protected $title;
 	protected $subject;
 	protected $author;
+	protected $isRightToLeft;
 	protected $company;
 	protected $description;
 	protected $keywords = array();
@@ -41,6 +42,7 @@ class XLSXWriter
 	public function setKeywords($keywords='') { $this->keywords=$keywords; }
 	public function setDescription($description='') { $this->description=$description; }
 	public function setTempDir($tempdir='') { $this->tempdir=$tempdir; }
+	public function setRightToLeft($isRightToLeft=false){ $this->isRightToLeft=$isRightToLeft; }
 
 	public function __destruct()
 	{
@@ -135,6 +137,7 @@ class XLSXWriter
 			'freeze_columns' => $freeze_columns,
 			'finalized' => false,
 		);
+		$rightToLeftValue = $this->isRightToLeft ? 'true' : 'false';
 		$sheet = &$this->sheets[$sheet_name];
 		$tabselected = count($this->sheets) == 1 ? 'true' : 'false';//only first sheet is selected
 		$max_cell=XLSXWriter::xlsCell(self::EXCEL_2007_MAX_ROW, self::EXCEL_2007_MAX_COL);//XFE1048577
@@ -147,7 +150,7 @@ class XLSXWriter
 		$sheet->file_writer->write('<dimension ref="A1:' . $max_cell . '"/>');
 		$sheet->max_cell_tag_end = $sheet->file_writer->ftell();
 		$sheet->file_writer->write(  '<sheetViews>');
-		$sheet->file_writer->write(    '<sheetView colorId="64" defaultGridColor="true" rightToLeft="false" showFormulas="false" showGridLines="true" showOutlineSymbols="true" showRowColHeaders="true" showZeros="true" tabSelected="' . $tabselected . '" topLeftCell="A1" view="normal" windowProtection="false" workbookViewId="0" zoomScale="100" zoomScaleNormal="100" zoomScalePageLayoutView="100">');
+		$sheet->file_writer->write(    '<sheetView colorId="64" defaultGridColor="true" rightToLeft="'.$rightToLeftValue.'" showFormulas="false" showGridLines="true" showOutlineSymbols="true" showRowColHeaders="true" showZeros="true" tabSelected="' . $tabselected . '" topLeftCell="A1" view="normal" windowProtection="false" workbookViewId="0" zoomScale="100" zoomScaleNormal="100" zoomScalePageLayoutView="100">');
 		if ($sheet->freeze_rows && $sheet->freeze_columns) {
 			$sheet->file_writer->write(      '<pane ySplit="'.$sheet->freeze_rows.'" xSplit="'.$sheet->freeze_columns.'" topLeftCell="'.self::xlsCell($sheet->freeze_rows, $sheet->freeze_columns).'" activePane="bottomRight" state="frozen"/>');
 			$sheet->file_writer->write(      '<selection activeCell="'.self::xlsCell($sheet->freeze_rows, 0).'" activeCellId="0" pane="topRight" sqref="'.self::xlsCell($sheet->freeze_rows, 0).'"/>');
