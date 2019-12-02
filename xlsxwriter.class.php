@@ -211,8 +211,9 @@ class XLSXWriter
      * @param string $sheetName
      * @param array $types
      */
-	public function setSheetHeaderTypes(string $sheetName, array $types): void
+	public function setSheetColumnTypes(string $sheetName, array $types): void
     {
+        $this->initializeSheet($sheetName);
         $sheet = &$this->sheets[$sheetName];
         $sheet->columns = $this->initializeColumnTypes($types);
     }
