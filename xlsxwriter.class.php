@@ -104,6 +104,11 @@ class XLSXWriter
 		$zip->addEmptyDir("xl/worksheets/");
 		foreach($this->sheets as $sheet) {
 			$zip->addFile($sheet->filename, "xl/worksheets/".$sheet->xmlname );
+
+			if ($sheet->hyperlinks) {
+				$zip->addEmptyDir("xl/worksheets/_rels/");
+				$zip->addFile($sheet->rel_filename, "xl/worksheets/_rels/".$sheet->xmlname.".rels" );
+			}
 		}
 		$zip->addFromString("xl/workbook.xml"         , self::buildWorkbookXML() );
 		$zip->addFile($this->writeStylesXML(), "xl/styles.xml" );  //$zip->addFromString("xl/styles.xml"           , self::buildStylesXML() );
@@ -114,6 +119,28 @@ class XLSXWriter
 		$zip->close();
 	}
 
+	protected function insertHyperlinks($sheet_name, $hyperlinks)
+	{
+		$sheet = &$this->sheets[$sheet_name];
+
+		$sheet->relfile_writer->write('<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' . "\n");
+		$sheet->relfile_writer->write('<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">');
+
+		$sheet->file_writer->write('<hyperlinks>');
+
+		$count = 1;
+		foreach ($hyperlinks as $columnId => $linkData) {
+			$sheet->file_writer->write('<hyperlink ref="' . $columnId . '" r:id="rId' . $count . '" display="' . self::xmlspecialchars($linkData['name']) . '"/>');
+
+			$sheet->relfile_writer->write('<Relationship Id="rId' . $count . '" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/hyperlink" Target="' . $linkData["url"] . '" TargetMode="External"/>');
+			$count++;
+		}
+
+		$sheet->file_writer->write('</hyperlinks>');
+		$sheet->relfile_writer->write('</Relationships>');
+		$sheet->relfile_writer->close();
+	}
+
 	protected function initializeSheet($sheet_name, $col_widths=array(), $auto_filter=false, $freeze_rows=false, $freeze_columns=false )
 	{
 		//if already initialized
@@ -122,14 +149,18 @@ class XLSXWriter
 
 		$sheet_filename = $this->tempFilename();
 		$sheet_xmlname = 'sheet' . (count($this->sheets) + 1).".xml";
+		$sheet_rel_filename = $this->tempFilename();
 		$this->sheets[$sheet_name] = (object)array(
 			'filename' => $sheet_filename,
+			'rel_filename' => $sheet_rel_filename,
 			'sheetname' => $sheet_name,
 			'xmlname' => $sheet_xmlname,
 			'row_count' => 0,
 			'file_writer' => new XLSXWriter_BuffererWriter($sheet_filename),
+			'relfile_writer' => new XLSXWriter_BuffererWriter($sheet_rel_filename),
 			'columns' => array(),
 			'merge_cells' => array(),
+			'hyperlinks' => array(),
 			'max_cell_tag_start' => 0,
 			'max_cell_tag_end' => 0,
 			'auto_filter' => $auto_filter,
@@ -272,6 +303,15 @@ class XLSXWriter
 		foreach ($row as $v) {
 			$number_format = $sheet->columns[$c]['number_format'];
 			$number_format_type = $sheet->columns[$c]['number_format_type'];
+
+			if (isset($style[$c]['hyperlink'])) {
+				$hyperlinkData = $style[$c]['hyperlink'];
+
+				$cell_name = self::xlsCell($sheet->row_count, $c);
+				$sheet->hyperlinks[$cell_name] = ['name' => $hyperlinkData['name'], 'url' => $hyperlinkData['url']];
+				unset($style[$c]['hyperlink']);
+			}
+
 			$cell_style_idx = empty($style) ? $sheet->columns[$c]['default_cell_style'] : $this->addCellStyle( $number_format, json_encode(isset($style[0]) ? $style[$c] : $style) );
 			$this->writeCell($sheet->file_writer, $sheet->row_count, $c, $v, $number_format_type, $cell_style_idx);
 			$c++;
@@ -302,6 +342,10 @@ class XLSXWriter
 				$sheet->file_writer->write(        '<mergeCell ref="' . $range . '"/>');
 			}
 			$sheet->file_writer->write(    '</mergeCells>');
+		}
+
+		if (!empty($sheet->hyperlinks)) {
+			$this->insertHyperlinks($sheet_name, $sheet->hyperlinks);
 		}
 
 		$max_cell = self::xlsCell($sheet->row_count - 1, count($sheet->columns) - 1);
@@ -695,7 +739,7 @@ class XLSXWriter
 		$content_types_xml="";
 		$content_types_xml.='<?xml version="1.0" encoding="UTF-8"?>'."\n";
 		$content_types_xml.='<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">';
-		$content_types_xml.='<Override PartName="/_rels/.rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>';
+		$content_types_xml.='<Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>';
 		$content_types_xml.='<Override PartName="/xl/_rels/workbook.xml.rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>';
 		foreach($this->sheets as $sheet_name=>$sheet) {
 			$content_types_xml.='<Override PartName="/xl/worksheets/'.($sheet->xmlname).'" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>';
