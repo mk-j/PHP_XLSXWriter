@@ -19,13 +19,14 @@ class XLSXWriter
 	protected $company;
 	protected $description;
 	protected $keywords = array();
-	
+	protected $bufferSize;
+
 	protected $current_sheet;
 	protected $sheets = array();
 	protected $temp_files = array();
 	protected $cell_styles = array();
 	protected $number_formats = array();
-
+	protected $rId = 1;
 	public function __construct()
 	{
 		defined('ENT_XML1') or define('ENT_XML1',16);//for php 5.3, avoid fatal error
@@ -43,6 +44,7 @@ class XLSXWriter
 	public function setDescription($description='') { $this->description=$description; }
 	public function setTempDir($tempdir='') { $this->tempdir=$tempdir; }
 	public function setRightToLeft($isRightToLeft=false){ $this->isRightToLeft=$isRightToLeft; }
+	public function setBufferSize($bufferSize=0){ $this->bufferSize=$bufferSize; }
 
 	public function __destruct()
 	{
@@ -105,7 +107,7 @@ class XLSXWriter
 		foreach($this->sheets as $sheet) {
 			$zip->addFile($sheet->filename, "xl/worksheets/".$sheet->xmlname );
 
-			if ($sheet->hyperlinks) {
+			if ($sheet->has_hyperlinks) {
 				$zip->addEmptyDir("xl/worksheets/_rels/");
 				$zip->addFile($sheet->rel_filename, "xl/worksheets/_rels/".$sheet->xmlname.".rels" );
 			}
@@ -119,28 +121,6 @@ class XLSXWriter
 		$zip->close();
 	}
 
-	protected function insertHyperlinks($sheet_name, $hyperlinks)
-	{
-		$sheet = &$this->sheets[$sheet_name];
-
-		$sheet->relfile_writer->write('<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' . "\n");
-		$sheet->relfile_writer->write('<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">');
-
-		$sheet->file_writer->write('<hyperlinks>');
-
-		$count = 1;
-		foreach ($hyperlinks as $columnId => $linkData) {
-			$sheet->file_writer->write('<hyperlink ref="' . $columnId . '" r:id="rId' . $count . '" display="' . self::xmlspecialchars($linkData['name']) . '"/>');
-
-			$sheet->relfile_writer->write('<Relationship Id="rId' . $count . '" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/hyperlink" Target="' . $linkData["url"] . '" TargetMode="External"/>');
-			$count++;
-		}
-
-		$sheet->file_writer->write('</hyperlinks>');
-		$sheet->relfile_writer->write('</Relationships>');
-		$sheet->relfile_writer->close();
-	}
-
 	protected function initializeSheet($sheet_name, $col_widths=array(), $auto_filter=false, $freeze_rows=false, $freeze_columns=false )
 	{
 		//if already initialized
@@ -150,14 +130,17 @@ class XLSXWriter
 		$sheet_filename = $this->tempFilename();
 		$sheet_xmlname = 'sheet' . (count($this->sheets) + 1).".xml";
 		$sheet_rel_filename = $this->tempFilename();
+		$sheet_hyperlinks_filename = $this->tempFilename();
 		$this->sheets[$sheet_name] = (object)array(
 			'filename' => $sheet_filename,
 			'rel_filename' => $sheet_rel_filename,
+			'hyperlinks_filename' => $sheet_hyperlinks_filename,
 			'sheetname' => $sheet_name,
 			'xmlname' => $sheet_xmlname,
 			'row_count' => 0,
-			'file_writer' => new XLSXWriter_BuffererWriter($sheet_filename),
-			'relfile_writer' => new XLSXWriter_BuffererWriter($sheet_rel_filename),
+			'file_writer' => new XLSXWriter_BuffererWriter($sheet_filename, 'w', false, $this->bufferSize),
+			'relfile_writer' => new XLSXWriter_BuffererWriter($sheet_rel_filename, 'w', false, $this->bufferSize),
+			'hyperlinks_writer' => new XLSXWriter_BuffererWriter($sheet_hyperlinks_filename, 'w', false, $this->bufferSize),
 			'columns' => array(),
 			'merge_cells' => array(),
 			'hyperlinks' => array(),
@@ -167,6 +150,7 @@ class XLSXWriter
 			'freeze_rows' => $freeze_rows,
 			'freeze_columns' => $freeze_columns,
 			'finalized' => false,
+			'has_hyperlinks' => false
 		);
 		$rightToLeftValue = $this->isRightToLeft ? 'true' : 'false';
 		$sheet = &$this->sheets[$sheet_name];
@@ -212,6 +196,20 @@ class XLSXWriter
 		$sheet->file_writer->write(  '<col collapsed="false" hidden="false" max="1024" min="'.($i+1).'" style="0" customWidth="false" width="11.5"/>');
 		$sheet->file_writer->write(  '</cols>');
 		$sheet->file_writer->write(  '<sheetData>');
+		
+		$this->writeHyperlinks($sheet);
+		$this->writeRels($sheet);
+	}
+
+	private function writeRels($sheet)
+	{
+		$sheet->relfile_writer->write('<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' . "\n");
+		$sheet->relfile_writer->write('    <Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">');
+	}
+
+	private function writeHyperlinks($sheet)
+	{
+		$sheet->hyperlinks_writer->write('<hyperlinks>');
 	}
 
 	private function addCellStyle($number_format, $cell_style_string)
@@ -285,7 +283,21 @@ class XLSXWriter
 			$sheet->columns = array_merge((array)$sheet->columns, $default_column_types);
 		}
 		
-		if (!empty($row_options))
+		$rowOptionsNotEmpty = !empty($row_options);    
+		if ($rowOptionsNotEmpty) {
+			$hyperlinkExists = false;
+			foreach ($row_options as $option) {
+				if (isset($option['hyperlink'])) {
+					$hyperlinkExists = true;
+				}
+			}
+
+			if ($hyperlinkExists && count($row_options) === 1) {
+				$rowOptionsNotEmpty = false;
+			}
+		}
+
+		if ($rowOptionsNotEmpty)
 		{
 			$ht = isset($row_options['height']) ? floatval($row_options['height']) : 12.1;
 			$customHt = isset($row_options['height']) ? true : false;
@@ -305,15 +317,19 @@ class XLSXWriter
 			$number_format_type = $sheet->columns[$c]['number_format_type'];
 
 			if (isset($style[$c]['hyperlink'])) {
+				$sheet->has_hyperlinks = true;
 				$hyperlinkData = $style[$c]['hyperlink'];
-
 				$cell_name = self::xlsCell($sheet->row_count, $c);
-				$sheet->hyperlinks[$cell_name] = ['name' => $hyperlinkData['name'], 'url' => $hyperlinkData['url']];
+
+				$sheet->hyperlinks_writer->write('<hyperlink ref="' . $cell_name . '" r:id="rId' . $this->rId . '" display="' . self::xmlspecialchars($hyperlinkData['name']) . '"/>');
+				$sheet->relfile_writer->write('<Relationship Id="rId' . $this->rId . '" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/hyperlink" Target="' . $hyperlinkData["url"] . '" TargetMode="External"/>');
+
 				unset($style[$c]['hyperlink']);
 			}
 
 			$cell_style_idx = empty($style) ? $sheet->columns[$c]['default_cell_style'] : $this->addCellStyle( $number_format, json_encode(isset($style[0]) ? $style[$c] : $style) );
 			$this->writeCell($sheet->file_writer, $sheet->row_count, $c, $v, $number_format_type, $cell_style_idx);
+			$this->rId++;
 			$c++;
 		}
 		$sheet->file_writer->write('</row>');
@@ -344,8 +360,12 @@ class XLSXWriter
 			$sheet->file_writer->write(    '</mergeCells>');
 		}
 
-		if (!empty($sheet->hyperlinks)) {
-			$this->insertHyperlinks($sheet_name, $sheet->hyperlinks);
+		if ($sheet->has_hyperlinks) {
+			$sheet->relfile_writer->write('</Relationships>');
+			$sheet->relfile_writer->close();
+			$sheet->hyperlinks_writer->write('</hyperlinks>');
+			$sheet->hyperlinks_writer->close();
+			$sheet->file_writer->write(file_get_contents($sheet->hyperlinks_writer->filename));
 		}
 
 		$max_cell = self::xlsCell($sheet->row_count - 1, count($sheet->columns) - 1);
@@ -939,9 +959,14 @@ class XLSXWriter_BuffererWriter
 	protected $fd=null;
 	protected $buffer='';
 	protected $check_utf8=false;
+	protected $bufferSize = 8191;
 
-	public function __construct($filename, $fd_fopen_flags='w', $check_utf8=false)
+	public $filename;
+	public function __construct($filename, $fd_fopen_flags='w', $check_utf8=false, $bufferSize=0)
 	{
+		$this->bufferSize = $bufferSize ?: $this->bufferSize;
+
+		$this->filename = $filename;
 		$this->check_utf8 = $check_utf8;
 		$this->fd = fopen($filename, $fd_fopen_flags);
 		if ($this->fd===false) {
@@ -952,7 +977,7 @@ class XLSXWriter_BuffererWriter
 	public function write($string)
 	{
 		$this->buffer.=$string;
-		if (isset($this->buffer[8191])) {
+		if (isset($this->buffer[$this->bufferSize])) {
 			$this->purge();
 		}
 	}
