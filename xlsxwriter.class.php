@@ -319,10 +319,11 @@ class XLSXWriter
 			$sheet->file_writer->write(        '<oddHeader>&amp;C&amp;&quot;Times New Roman,Regular&quot;&amp;12&amp;A</oddHeader>');
 			$sheet->file_writer->write(        '<oddFooter>&amp;C&amp;&quot;Times New Roman,Regular&quot;&amp;12Page &amp;P</oddFooter>');
 		} else {
-			foreach ($this->headerFooter as $k => $content) {
-				if (!empty($content)) {
-					$sheet->file_writer->write(        '<' . $k . '>' . implode('', $content) . '</' . $k . '>');
-				}
+			if (!empty($this->headerFooter['oddHeader'])) {
+				$sheet->file_writer->write(        '<oddHeader>' . implode('', $this->headerFooter['oddHeader']) . '</oddHeader>');
+			}
+			if (!empty($this->headerFooter['oddFooter'])) {
+				$sheet->file_writer->write(        '<oddFooter>' . implode('', $this->headerFooter['oddFooter']) . '</oddFooter>');
 			}
 		}
 		$sheet->file_writer->write(    '</headerFooter>');
@@ -742,11 +743,12 @@ class XLSXWriter
 	/*
 	 * @param $pos char, l for left, c for center, r for right
 	 * @param $content content of the header
+	 * @param $footer true if set the footer, false if set the header
 	 * @return void
 	 */
 	public function setHeaderFooter($pos, $content, $footer = false) {
 		if (empty($this->headerFooter)) {
-			$this->headerFooter = array('oddFooter' => array(), 'oddHeader' => array());
+			$this->headerFooter = array('oddHeader' => array(), 'oddFooter' => array());
 		}
 		$tag = '';
 		$posIdx = 0;
