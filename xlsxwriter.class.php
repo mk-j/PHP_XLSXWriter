@@ -19,6 +19,7 @@ class XLSXWriter
 	protected $company;
 	protected $description;
 	protected $keywords = array();
+	protected $headerFooter;
 	
 	protected $current_sheet;
 	protected $sheets = array();
@@ -314,8 +315,16 @@ class XLSXWriter
 		$sheet->file_writer->write(    '<pageMargins left="0.5" right="0.5" top="1.0" bottom="1.0" header="0.5" footer="0.5"/>');
 		$sheet->file_writer->write(    '<pageSetup blackAndWhite="false" cellComments="none" copies="1" draft="false" firstPageNumber="1" fitToHeight="1" fitToWidth="1" horizontalDpi="300" orientation="portrait" pageOrder="downThenOver" paperSize="1" scale="100" useFirstPageNumber="true" usePrinterDefaults="false" verticalDpi="300"/>');
 		$sheet->file_writer->write(    '<headerFooter differentFirst="false" differentOddEven="false">');
-		$sheet->file_writer->write(        '<oddHeader>&amp;C&amp;&quot;Times New Roman,Regular&quot;&amp;12&amp;A</oddHeader>');
-		$sheet->file_writer->write(        '<oddFooter>&amp;C&amp;&quot;Times New Roman,Regular&quot;&amp;12Page &amp;P</oddFooter>');
+		if (empty($this->headerFooter)) {
+			$sheet->file_writer->write(        '<oddHeader>&amp;C&amp;&quot;Times New Roman,Regular&quot;&amp;12&amp;A</oddHeader>');
+			$sheet->file_writer->write(        '<oddFooter>&amp;C&amp;&quot;Times New Roman,Regular&quot;&amp;12Page &amp;P</oddFooter>');
+		} else {
+			foreach ($this->headerFooter as $k => $content) {
+				if (!empty($content)) {
+					$sheet->file_writer->write(        '<' . $k . '>' . implode('', $content) . '</' . $k . '>');
+				}
+			}
+		}
 		$sheet->file_writer->write(    '</headerFooter>');
 		$sheet->file_writer->write('</worksheet>');
 
@@ -707,6 +716,51 @@ class XLSXWriter
 		$content_types_xml.="\n";
 		$content_types_xml.='</Types>';
 		return $content_types_xml;
+	}
+
+	protected function replaceHeaderFooterTag($content) {
+		return str_replace(
+			array(
+				'&[Page]',
+				'&[Pages]',
+				'&[File]',
+				'&[Path]',
+				'&[Date]',
+				'&[Time]',
+				'&[Tab]',
+			),
+			array(
+				'&P',
+				'&N',
+				'&F',
+				'&Z',
+				'&D',
+				'&T',
+				'&A'
+			), $content);
+	}
+	/*
+	 * @param $pos char, l for left, c for center, r for right
+	 * @param $content content of the header
+	 * @return void
+	 */
+	public function setHeaderFooter($pos, $content, $footer = false) {
+		if (empty($this->headerFooter)) {
+			$this->headerFooter = array('oddFooter' => array(), 'oddHeader' => array());
+		}
+		$tag = '';
+		$posIdx = 0;
+		switch ($pos) {
+			default: return;
+			case 'l': case 'L': $tag = '&L'; break;
+			case 'r': case 'R': $tag = '&R'; $posIdx = 2; break;
+			case 'c': case 'C': $tag = '&C'; $posIdx = 1; break;
+		}
+		$hfIdx = $footer ? 'oddFooter' : 'oddHeader';
+		if (!isset($this->headerFooter[$hfIdx])) {
+			$this->headerFooter[$hfIdx] = array();
+		}
+		$this->headerFooter[$hfIdx][$posIdx] = $this->xmlspecialchars($tag . $this->replaceHeaderFooterTag($content));
 	}
 
 	//------------------------------------------------------------------
