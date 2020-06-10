@@ -850,6 +850,7 @@ class XLSXWriter
 		if ("$year-$month-$day"=='1899-12-31')  return $seconds      ;    # Excel 1900 epoch
 		if ("$year-$month-$day"=='1900-01-00')  return $seconds      ;    # Excel 1900 epoch
 		if ("$year-$month-$day"=='1900-02-29')  return 60 + $seconds ;    # Excel false leapday
+		if ("$year-$month-$day"=='0-0-0')  return  $seconds             ;    # Empty Date
 
 		# We calculate the date by calculating the number of days since the epoch
 		# and adjust for the number of leap days. We calculate the number of leap
