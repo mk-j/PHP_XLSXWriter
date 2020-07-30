@@ -259,6 +259,9 @@ class XLSXWriter
 			$default_column_types = $this->initializeColumnTypes( array_fill($from=0, $until=count($row), 'GENERAL') );//will map to n_auto
 			$columns_type = array_merge((array)$columns_type, $default_column_types);
 		}
+		if (count($sheet->columns) < count($columns_type)) {
+			$sheet->columns = $columns_type;
+		}
 		
 		if (!empty($row_options))
 		{
