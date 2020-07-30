@@ -242,16 +242,21 @@ class XLSXWriter
 		$this->current_sheet = $sheet_name;
 	}
 
-	public function writeSheetRow($sheet_name, array $row, $row_options=null)
+	public function writeSheetRow($sheet_name, array $row, $row_options=null, $types=null)
 	{
 		if (empty($sheet_name))
 			return;
 
 		$this->initializeSheet($sheet_name);
 		$sheet = &$this->sheets[$sheet_name];
-		if (count($sheet->columns) < count($row)) {
+
+		$columns_type = $sheet->columns;
+		if (is_array($types)) {
+			$columns_type = $this->initializeColumnTypes($types);
+		}
+		if (count($columns_type) < count($row)) {
 			$default_column_types = $this->initializeColumnTypes( array_fill($from=0, $until=count($row), 'GENERAL') );//will map to n_auto
-			$sheet->columns = array_merge((array)$sheet->columns, $default_column_types);
+			$columns_type = array_merge((array)$columns_type, $default_column_types);
 		}
 		
 		if (!empty($row_options))
@@ -270,9 +275,9 @@ class XLSXWriter
 		$style = &$row_options;
 		$c=0;
 		foreach ($row as $v) {
-			$number_format = $sheet->columns[$c]['number_format'];
-			$number_format_type = $sheet->columns[$c]['number_format_type'];
-			$cell_style_idx = empty($style) ? $sheet->columns[$c]['default_cell_style'] : $this->addCellStyle( $number_format, json_encode(isset($style[0]) ? $style[$c] : $style) );
+			$number_format = $columns_type[$c]['number_format'];
+			$number_format_type = $columns_type[$c]['number_format_type'];
+			$cell_style_idx = empty($style) ? $columns_type[$c]['default_cell_style'] : $this->addCellStyle( $number_format, json_encode(isset($style[0]) ? $style[$c] : $style) );
 			$this->writeCell($sheet->file_writer, $sheet->row_count, $c, $v, $number_format_type, $cell_style_idx);
 			$c++;
 		}
