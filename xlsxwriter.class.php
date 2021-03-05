@@ -275,13 +275,15 @@ class XLSXWriter
 		}
 
 		$style = &$row_options;
-		$c=0;
-		foreach ($row as $v) {
-			$number_format = $sheet->columns[$c]['number_format'];
-			$number_format_type = $sheet->columns[$c]['number_format_type'];
-			$cell_style_idx = empty($style) ? $sheet->columns[$c]['default_cell_style'] : $this->addCellStyle( $number_format, json_encode(isset($style[0]) ? $style[$c] : $style) );
-			$this->writeCell($sheet->file_writer, $sheet->row_count, $c, $v, $number_format_type, $cell_style_idx);
-			$c++;
+		$rowKeys = array_key($row);
+		$maxCellIndex = end($rowKeys);
+		for($cellIndex = 0; $cellIndex <= $maxCellIndex; $cellIndex++){
+			$value = $row[$cellIndex] ?? '';
+			
+			$number_format = $sheet->columns[$cellIndex]['number_format'];
+			$number_format_type = $sheet->columns[$cellIndex]['number_format_type'];
+			$cell_style_idx = empty($style) ? $sheet->columns[$cellIndex]['default_cell_style'] : $this->addCellStyle( $number_format, json_encode(isset($style[0]) ? $style[$cellIndex] : $style) );
+			$this->writeCell($sheet->file_writer, $sheet->row_count, $cellIndex, $value, $number_format_type, $cell_style_idx);
 		}
 		$sheet->file_writer->write('</row>');
 		$sheet->row_count++;
