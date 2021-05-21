@@ -260,9 +260,13 @@ class XLSXWriter
 			$default_column_types = $this->initializeColumnTypes( array_fill($from=0, $until=count($row), 'GENERAL') );//will map to n_auto
 			$sheet->columns = array_merge((array)$sheet->columns, $default_column_types);
 		}
-		
+
+		$overrideNumberFormats = null;
 		if (!empty($row_options))
 		{
+            $overrideNumberFormats = isset($row_options['number_format']) ? $row_options['number_format'] : null;
+            if (!empty($row_options['number_format'])) { unset($row_options['number_format']); }
+
 			$ht = isset($row_options['height']) ? floatval($row_options['height']) : 12.1;
 			$customHt = isset($row_options['height']) ? true : false;
 			$hidden = isset($row_options['hidden']) ? (bool)($row_options['hidden']) : false;
@@ -280,7 +284,7 @@ class XLSXWriter
 			$number_format = $sheet->columns[$c]['number_format'];
 			$number_format_type = $sheet->columns[$c]['number_format_type'];
 			$cell_style_idx = empty($style) ? $sheet->columns[$c]['default_cell_style'] : $this->addCellStyle( $number_format, json_encode(isset($style[0]) ? $style[$c] : $style) );
-			$this->writeCell($sheet->file_writer, $sheet->row_count, $c, $v, $number_format_type, $cell_style_idx);
+			$this->writeCell($sheet->file_writer, $sheet->row_count, $c, $v, !empty($overrideNumberFormats) ? $overrideNumberFormats : $number_format_type, $cell_style_idx);
 			$c++;
 		}
 		$sheet->file_writer->write('</row>');
@@ -314,7 +318,7 @@ class XLSXWriter
 		$max_cell = self::xlsCell($sheet->row_count - 1, count($sheet->columns) - 1);
 
 		if ($sheet->auto_filter) {
-			$sheet->file_writer->write(    '<autoFilter ref="A1:' . $max_cell . '"/>');			
+			$sheet->file_writer->write(    '<autoFilter ref="A' . (is_int($sheet->auto_filter) ? $sheet->auto_filter : 1) . ':' . $max_cell . '"/>');
 		}
 
 		$sheet->file_writer->write(    '<printOptions headings="false" gridLines="false" gridLinesSet="true" horizontalCentered="false" verticalCentered="false"/>');
@@ -672,7 +676,7 @@ class XLSXWriter
 		foreach($this->sheets as $sheet_name=>$sheet) {
 			if ($sheet->auto_filter) {
 				$sheetname = self::sanitize_sheetname($sheet->sheetname);
-				$workbook_xml.='<definedName name="_xlnm._FilterDatabase" localSheetId="0" hidden="1">\''.self::xmlspecialchars($sheetname).'\'!$A$1:' . self::xlsCell($sheet->row_count - 1, count($sheet->columns) - 1, true) . '</definedName>';
+				$workbook_xml.='<definedName name="_xlnm._FilterDatabase" localSheetId="0" hidden="1">\''.self::xmlspecialchars($sheetname).'\'!$A$' . (is_int($sheet->auto_filter) ? $sheet->auto_filter : 1) . ':' . self::xlsCell($sheet->row_count - 1, count($sheet->columns) - 1, true) . '</definedName>';
 				$i++;	
 			}
 		}
