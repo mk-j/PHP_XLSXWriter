@@ -16,6 +16,7 @@ $sheet1header = array(
 $sheet2header = array(
     'col1-date'=>'date',
     'col2-datetime'=>'datetime',
+    'col3-time'=>'time',
     'custom-date1'=>'YYYY-MM-DD',
     'custom-date2'=>'MM/DD/YYYY',
     'custom-date3'=>'DD-MMM-YYYY HH:MM AM/PM',
@@ -23,6 +24,8 @@ $sheet2header = array(
     'custom-date5'=>'YYYY-MM-DD HH:MM:SS',
     'custom-date6'=>'YY MMMM',
     'custom-date7'=>'QQ YYYY',
+    'custom-time1'=>'HH:MM',
+    'custom-time2'=>'HH:MM:SS',
 );
 $sheet3header = array(
     'col1-dollar'=>'dollar',
@@ -38,6 +41,7 @@ $sheet3header = array(
 );
 $pi = 3.14159;
 $date = '2018-12-31 23:59:59';
+$time = '23:59:59';
 $amount = '5120.5';
 
 $writer = new XLSXWriter();
@@ -45,7 +49,7 @@ $writer->setAuthor('Some Author');
 $writer->writeSheetHeader('BasicFormats',$sheet1header);
 $writer->writeSheetRow('BasicFormats',array($pi,$pi,$pi,$pi,$pi,$pi,$pi,$pi,$pi) );
 $writer->writeSheetHeader('Dates',$sheet2header);
-$writer->writeSheetRow('Dates',array($date,$date,$date,$date,$date,$date,$date,$date,$date) );
+$writer->writeSheetRow('Dates',array($date,$date,$date,$date,$date,$date,$date,$date,$date,$date,$time,$time) );
 $writer->writeSheetHeader('Currencies',$sheet3header);
 $writer->writeSheetRow('Currencies',array($amount,$amount,$amount,$amount,$amount,$amount,$amount,$amount,$amount) );
 $writer->writeToFile('xlsx-formats.xlsx');

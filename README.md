@@ -76,6 +76,7 @@ Simple cell formats map to more advanced cell formats
 | integer  | 0 |
 | date     | YYYY-MM-DD |
 | datetime | YYYY-MM-DD HH:MM:SS |
+| time     | HH:MM:SS |
 | price    | #,##0.00 |
 | dollar   | [$$-1009]#,##0.00;[RED]-[$$-1009]#,##0.00 |
 | euro     | #,##0.00 [$€-407];[RED]-#,##0.00 [$€-407] |
