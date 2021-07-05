@@ -19,7 +19,10 @@ class XLSXWriter
 	protected $company;
 	protected $description;
 	protected $keywords = array();
-	
+
+	// WorkbookXML
+	protected $tabRatio;
+
 	protected $current_sheet;
 	protected $sheets = array();
 	protected $temp_files = array();
@@ -43,6 +46,13 @@ class XLSXWriter
 	public function setDescription($description='') { $this->description=$description; }
 	public function setTempDir($tempdir='') { $this->tempdir=$tempdir; }
 	public function setRightToLeft($isRightToLeft=false){ $this->isRightToLeft=$isRightToLeft; }
+
+	/**
+	 * @param int $tabRatio Specifies ratio between the workbook tabs bar and the horizontal scroll bar.
+	 *                      0 <= $tabRatio <= 1000
+	 *                      Default: 600
+	 */
+	public function setTabRatio($tabRatio=600) { $this->tabRatio=min(1000, max(0, $tabRatio)); }
 
 	public function __destruct()
 	{
@@ -660,7 +670,11 @@ class XLSXWriter
 		$workbook_xml.='<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'."\n";
 		$workbook_xml.='<workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">';
 		$workbook_xml.='<fileVersion appName="Calc"/><workbookPr backupFile="false" showObjects="all" date1904="false"/><workbookProtection/>';
-		$workbook_xml.='<bookViews><workbookView activeTab="0" firstSheet="0" showHorizontalScroll="true" showSheetTabs="true" showVerticalScroll="true" tabRatio="212" windowHeight="8192" windowWidth="16384" xWindow="0" yWindow="0"/></bookViews>';
+		$workbook_xml.='<bookViews>';
+		$workbook_xml.='<workbookView activeTab="0" firstSheet="0" showHorizontalScroll="true" showSheetTabs="true" showVerticalScroll="true" ';
+		$workbook_xml.='tabRatio="' . $this->tabRatio . '" ';
+		$workbook_xml.='windowHeight="8192" windowWidth="16384" xWindow="0" yWindow="0"/>';
+		$workbook_xml.='</bookViews>';
 		$workbook_xml.='<sheets>';
 		foreach($this->sheets as $sheet_name=>$sheet) {
 			$sheetname = self::sanitize_sheetname($sheet->sheetname);
