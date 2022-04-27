@@ -121,7 +121,7 @@ class XLSXWriter
 		$zip->close();
 	}
 
-	protected function initializeSheet($sheet_name, $col_widths=array(), $auto_filter=false, $freeze_rows=false, $freeze_columns=false )
+	protected function initializeSheet($sheet_name, $col_widths=array(), $auto_filter=false, $freeze_rows=false, $freeze_columns=false, $col_collapsed=array(), $col_hidden=array() )
 	{
 		//if already initialized
 		if ($this->current_sheet==$sheet_name || isset($this->sheets[$sheet_name]))
@@ -181,7 +181,19 @@ class XLSXWriter
 		$i=0;
 		if (!empty($col_widths)) {
 			foreach($col_widths as $column_width) {
-				$sheet->file_writer->write(  '<col collapsed="false" hidden="false" max="'.($i+1).'" min="'.($i+1).'" style="0" customWidth="true" width="'.floatval($column_width).'"/>');
+				$collapsed = isset($col_collapsed[$i]) ? (bool)($col_collapsed[$i]) : false;
+				$hidden = isset($col_hidden[$i]) ? (bool)($col_hidden[$i]) : false;
+				$outlineLevel = intval($collapsed);
+				$sheet->file_writer->write(  '<col collapsed="'.($collapsed ? 'true' : 'false').'" hidden="'.($hidden ? 'true' : 'false').'" max="'.($i+1).'" min="'.($i+1).'" style="0" customWidth="true" width="'.floatval($column_width).'" outlineLevel="'.$outlineLevel.'"/>');
+				$i++;
+			}
+		}
+		if (!empty($col_collapsed)) {
+			for($j = $i; $j <= sizeof($col_collapsed); $j++) {
+				$collapsed = isset($col_collapsed[$j]) ? (bool)($col_collapsed[$j]) : false;
+				$hidden = isset($col_hidden[$j]) ? (bool)($col_hidden[$j]) : false;
+				$outlineLevel = intval($collapsed);
+				$sheet->file_writer->write(  '<col collapsed="'.($collapsed ? 'true' : 'false').'" hidden="'.($hidden ? 'true' : 'false').'" max="'.($i+1).'" min="'.($i+1).'" style="0" customWidth="true" width="11.5" outlineLevel="'.$outlineLevel.'"/>');
 				$i++;
 			}
 		}
@@ -231,7 +243,9 @@ class XLSXWriter
 		$auto_filter = isset($col_options['auto_filter']) ? intval($col_options['auto_filter']) : false;
 		$freeze_rows = isset($col_options['freeze_rows']) ? intval($col_options['freeze_rows']) : false;
 		$freeze_columns = isset($col_options['freeze_columns']) ? intval($col_options['freeze_columns']) : false;
-		self::initializeSheet($sheet_name, $col_widths, $auto_filter, $freeze_rows, $freeze_columns);
+		$col_collapsed = isset($col_options['collapsed']) ? (array)$col_options['collapsed'] : array();
+		$col_hidden = isset($col_options['hidden']) ? (array)$col_options['hidden'] : array();
+		self::initializeSheet($sheet_name, $col_widths, $auto_filter, $freeze_rows, $freeze_columns, $col_collapsed, $col_hidden);
 		$sheet = &$this->sheets[$sheet_name];
 		$sheet->columns = $this->initializeColumnTypes($header_types);
 		if (!$suppress_row)
