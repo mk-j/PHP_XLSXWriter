@@ -1,16 +1,16 @@
-dist: trusty
+dist: bionic
 sudo: required
 
 language: php
 
 php:
-  - 7.1
+  - 7.4.28
 
 install:
   - composer validate --no-check-all --no-check-publish
   - composer install
 
-script:  ./vendor/bin/phpunit --coverage-clover=coverage.xml Test/
+script:  ./vendor/bin/phpunit Test/
 
 after_success:
   - bash <(curl -s https://codecov.io/bash)
