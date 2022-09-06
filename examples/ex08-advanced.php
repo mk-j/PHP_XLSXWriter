@@ -49,6 +49,25 @@ $writer->writeSheetHeader($sheet4, ["col1"=>"string", "col2"=>"string"], $col_op
 $writer->writeSheetRow($sheet4, array(101,'this text will wrap'    ), $row_options = array('height'=>30,'wrap_text'=>true));
 $writer->writeSheetRow($sheet4, array(201,'this text is hidden'    ), $row_options = array('height'=>30,'hidden'=>true));
 $writer->writeSheetRow($sheet4, array(301,'this text will not wrap'), $row_options = array('height'=>30,'collapsed'=>true));
+
+//----
+$sheet5 = 'per_row_column_types';
+$header = array("col1" => "string", "col2" => "string", "col3" => "string");
+$colOptions = array('widths' => [10, 10, 10]);
+$rowOptions = array('height' => 30,'wrap_text' => true);
+$intColumnTypes = array('integer', 'integer', 'integer');
+$stringColumnTypes = array('string', 'string', 'string');
+
+// standard string columns defined by the header
+$writer->writeSheetHeader($sheet5, $header, $colOptions);
+$writer->writeSheetRow($sheet5, array('11','12', '13'), $rowOptions);
+$writer->writeSheetRow($sheet5, array('21','22', '23'), $rowOptions);
+$writer->writeSheetRowWithColTypes($sheet5, array(31, 32, 33), $rowOptions, $stringColumnTypes);
+
+// override row to use integer columns
+$writer->writeSheetRowWithColTypes($sheet5, array(41, 42, 43), $rowOptions, $intColumnTypes);
+
+// override only the 2nd column to be integer-based
+$writer->writeSheetRowWithColTypes($sheet5, array('61', 62, '63'), $rowOptions, array(1 => 'integer'));
+
 $writer->writeToFile('xlsx-advanced.xlsx');
-
-
