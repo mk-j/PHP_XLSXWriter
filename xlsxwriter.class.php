@@ -118,7 +118,7 @@ class XLSXWriter
 		$zip->close();
 	}
 
-	protected function initializeSheet($sheet_name, $freeze_rows=false, $freeze_columns=false)
+	protected function initializeSheet($sheet_name)
 	{
 		//if already initialized
 		if ($this->current_sheet==$sheet_name || isset($this->sheets[$sheet_name]))
@@ -136,8 +136,6 @@ class XLSXWriter
 			'merge_cells' => [],
 			'max_cell_tag_start' => 0,
 			'max_cell_tag_end' => 0,
-			'freeze_rows' => $freeze_rows,
-			'freeze_columns' => $freeze_columns,
 			'finalized' => false,
 		];
 		$sheet = &$this->sheets[$sheet_name];
@@ -153,22 +151,7 @@ class XLSXWriter
 		$sheet->max_cell_tag_end = $sheet->file_writer->ftell();
 		$sheet->file_writer->write(  '<sheetViews>');
 		$sheet->file_writer->write(    '<sheetView colorId="64" defaultGridColor="true" rightToLeft="false" showFormulas="false" showGridLines="true" showOutlineSymbols="true" showRowColHeaders="true" showZeros="true" tabSelected="' . $tabselected . '" topLeftCell="A1" view="normal" windowProtection="false" workbookViewId="0" zoomScale="100" zoomScaleNormal="100" zoomScalePageLayoutView="100">');
-
-		if ($sheet->freeze_rows !== false && $sheet->freeze_columns !== false) {
-			$sheet->file_writer->write(      '<pane ySplit="'.$sheet->freeze_rows.'" xSplit="'.$sheet->freeze_columns.'" topLeftCell="'.self::xlsCell($sheet->freeze_rows, $sheet->freeze_columns).'" activePane="bottomRight" state="frozen"/>');
-			$sheet->file_writer->write(      '<selection activeCell="'.self::xlsCell($sheet->freeze_rows, 0).'" activeCellId="0" pane="topRight" sqref="'.self::xlsCell($sheet->freeze_rows, 0).'"/>');
-			$sheet->file_writer->write(      '<selection activeCell="'.self::xlsCell(0, $sheet->freeze_columns).'" activeCellId="0" pane="bottomLeft" sqref="'.self::xlsCell(0, $sheet->freeze_columns).'"/>');
-			$sheet->file_writer->write(      '<selection activeCell="'.self::xlsCell($sheet->freeze_rows, $sheet->freeze_columns).'" activeCellId="0" pane="bottomRight" sqref="'.self::xlsCell($sheet->freeze_rows, $sheet->freeze_columns).'"/>');
-		} elseif ($sheet->freeze_rows !== false) {
-			$sheet->file_writer->write(      '<pane ySplit="'.$sheet->freeze_rows.'" topLeftCell="'.self::xlsCell($sheet->freeze_rows, 0).'" activePane="bottomLeft" state="frozen"/>');
-			$sheet->file_writer->write(      '<selection activeCell="'.self::xlsCell($sheet->freeze_rows, 0).'" activeCellId="0" pane="bottomLeft" sqref="'.self::xlsCell($sheet->freeze_rows, 0).'"/>');
-		} elseif ($sheet->freeze_columns !== false) {
-			$sheet->file_writer->write(      '<pane xSplit="'.$sheet->freeze_columns.'" topLeftCell="'.self::xlsCell(0, $sheet->freeze_columns).'" activePane="topRight" state="frozen"/>');
-			$sheet->file_writer->write(      '<selection activeCell="'.self::xlsCell(0, $sheet->freeze_columns).'" activeCellId="0" pane="topRight" sqref="'.self::xlsCell(0, $sheet->freeze_columns).'"/>');
-		} else { // not frozen
-			$sheet->file_writer->write(      '<selection activeCell="A1" activeCellId="0" pane="topLeft" sqref="A1"/>');
-		}
-
+		$sheet->file_writer->write(      '<selection activeCell="A1" activeCellId="0" pane="topLeft" sqref="A1"/>');
 		$sheet->file_writer->write(    '</sheetView>');
 		$sheet->file_writer->write(  '</sheetViews>');
 		$sheet->file_writer->write(  '<cols>');
@@ -177,7 +160,7 @@ class XLSXWriter
 		$sheet->file_writer->write(  '<sheetData>');
 	}
 
-	public function writeSheetHeader($sheet_name, array $header_types, $format = 'xlsx', $delimiter = ';', $subheader = NULL, $col_options = []) {
+	public function writeSheetHeader($sheet_name, array $header_types, $format = 'xlsx', $delimiter = ';', $subheader = NULL) {
 		if (empty($sheet_name) || empty($header_types) || !empty($this->sheets[$sheet_name])) {
 			return;
 		}
@@ -201,10 +184,7 @@ class XLSXWriter
 			$start = 0;
 		}
 
-		$freeze_rows = (array_key_exists('freeze_rows', $col_options) && $col_options['freeze_rows'] !== false) ? intval($col_options['freeze_rows']) : false;
-		$freeze_columns = (array_key_exists('freeze_columns', $col_options) && $col_options['freeze_columns'] !== false) ? intval($col_options['freeze_columns']) : false;
-
-		self::initializeSheet($sheet_name, $freeze_rows, $freeze_columns);
+		self::initializeSheet($sheet_name);
 		$sheet = &$this->sheets[$sheet_name];
 		$sheet->cell_formats = array_values($header_types);
 		$header_row = array_keys($header_types);
