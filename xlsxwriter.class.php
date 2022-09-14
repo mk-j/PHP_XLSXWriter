@@ -428,9 +428,9 @@ class XLSXWriter
 			$file->write('<c r="'.$cell_name.'" s="'.$cell_style_idx.'" t="n"><v>'.self::convert_date_time($value).'</v></c>');
 		} elseif (!is_string($value)) {
 			$file->write('<c r="'.$cell_name.'" s="'.$cell_style_idx.'" t="n"><v>'.($value*1).'</v></c>');//int,float, etc
-		} elseif ($value[0]!='0' && filter_var($value, FILTER_VALIDATE_INT)){ //excel wants to trim leading zeros
+		} elseif ($value{0}!='0' && filter_var($value, FILTER_VALIDATE_INT)){ //excel wants to trim leading zeros
 			$file->write('<c r="'.$cell_name.'" s="'.$cell_style_idx.'" t="n"><v>'.($value).'</v></c>');//numeric string
-		} elseif ($value[0]=='='){
+		} elseif ($value{0}=='='){
 			$file->write('<c r="'.$cell_name.'" s="'.$cell_style_idx.'" t="s"><f>'.self::xmlspecialchars($value).'</f></c>');
 		} elseif ($value!==''){
 			$file->write('<c r="'.$cell_name.'" s="'.$cell_style_idx.'" t="s"><v>'.self::xmlspecialchars($this->setSharedString($value)).'</v></c>');
