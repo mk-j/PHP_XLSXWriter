@@ -126,18 +126,17 @@ class XLSXWriter
 
 		$sheet_filename = $this->tempFilename();
 		$sheet_xmlname = 'sheet' . (count($this->sheets) + 1).".xml";
-		$this->sheets[$sheet_name] = (object)[
+		$this->sheets[$sheet_name] = (object)array(
 			'filename' => $sheet_filename,
 			'sheetname' => $sheet_name,
 			'xmlname' => $sheet_xmlname,
 			'row_count' => 0,
 			'file_writer' => new XLSXWriter_BuffererWriter($sheet_filename),
-			'cell_formats' => [],
-			'merge_cells' => [],
+			'cell_formats' => array(),
 			'max_cell_tag_start' => 0,
 			'max_cell_tag_end' => 0,
 			'finalized' => false,
-		];
+		);
 		$sheet = &$this->sheets[$sheet_name];
 		$tabselected = count($this->sheets) == 1 ? 'true' : 'false';//only first sheet is selected
 		$max_cell=XLSXWriter::xlsCell(self::EXCEL_2007_MAX_ROW, self::EXCEL_2007_MAX_COL);//XFE1048577
@@ -233,15 +232,6 @@ class XLSXWriter
 		$sheet = &$this->sheets[$sheet_name];
 
 		$sheet->file_writer->write(    '</sheetData>');
-
-		if (!empty($sheet->merge_cells)) {
-			$sheet->file_writer->write('<mergeCells>');
-			foreach ($sheet->merge_cells as $range) {
-				$sheet->file_writer->write('<mergeCell ref="' . $range . '"/>');
-			}
-			$sheet->file_writer->write('</mergeCells>');
-		}
-
 		$sheet->file_writer->write(    '<printOptions headings="false" gridLines="false" gridLinesSet="true" horizontalCentered="false" verticalCentered="false"/>');
 		$sheet->file_writer->write(    '<pageMargins left="0.5" right="0.5" top="1.0" bottom="1.0" header="0.5" footer="0.5"/>');
 		$sheet->file_writer->write(    '<pageSetup blackAndWhite="false" cellComments="none" copies="1" draft="false" firstPageNumber="1" fitToHeight="1" fitToWidth="1" horizontalDpi="300" orientation="portrait" pageOrder="downThenOver" paperSize="1" scale="100" useFirstPageNumber="true" usePrinterDefaults="false" verticalDpi="300"/>');
@@ -258,20 +248,6 @@ class XLSXWriter
 		$sheet->file_writer->write($max_cell_tag.str_repeat(" ", $padding_length));
 		$sheet->file_writer->close();
 		$sheet->finalized=true;
-	}
-
-	public function markMergedCell($sheet_name, $start_cell_row, $start_cell_column, $end_cell_row, $end_cell_column, $format = 'xlsx') {
-		if (empty($sheet_name) || $this->sheets[$sheet_name]->finalized || $format == 'csv'){
-			return;
-		}
-
-		self::initializeSheet($sheet_name);
-
-		$sheet = &$this->sheets[$sheet_name];
-		$startCell = self::xlsCell($start_cell_row, $start_cell_column);
-		$endCell = self::xlsCell($end_cell_row, $end_cell_column);
-
-		$sheet->merge_cells[] = $startCell . ":" . $endCell;
 	}
 
 	public function writeCSV(array $data, array $header_types=array(), $delimiter = ';') {
