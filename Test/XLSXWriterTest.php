@@ -152,6 +152,7 @@ class XLSXWriterTest extends TestCase
 
 		$selections = $sheet_view->selection;
 		for ($i = 0; $i < count($expected_active_cells); $i++) {
+			$this->assertNotEmpty($selections[$i]);
 			$this->assertEquals($expected_active_cells[$i]['cell'], $selections[$i]['activeCell']);
 			$this->assertEquals($expected_active_cells[$i]['cell'], $selections[$i]['sqref']);
 			$this->assertEquals($expected_active_cells[$i]['pane'], $selections[$i]['pane']);
