@@ -10,7 +10,7 @@ install:
   - composer validate --no-check-all --no-check-publish
   - composer install
 
-script:  ./vendor/bin/phpunit Test/
+script: ./vendor/bin/phpunit testbench/xlsxwriter.class.Test.php
 
 after_success:
   - bash <(curl -s https://codecov.io/bash)
