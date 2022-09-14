@@ -31,12 +31,6 @@ class XLSXWriter
 
 	public function setAuthor($author='') { $this->author=$author; }
 
-	public function getFileProperties(): array {
-		return [
-			"author" => $this->author,
-		];
-	}
-
 	public function __destruct()
 	{
 		if (!empty($this->temp_files)) {

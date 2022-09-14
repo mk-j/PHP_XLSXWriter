@@ -10,6 +10,6 @@
         "classmap": ["xlsxwriter.class.php"]
     },
     "require-dev": {
-        "phpunit/phpunit": "^7.5"
+        "phpunit/phpunit": "4.3.*"
     }
 }
