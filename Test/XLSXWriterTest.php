@@ -98,15 +98,20 @@ class XLSXWriterTest extends TestCase
 
 		$zip = new ZipArchive();
 		$r = $zip->open($filename);
-		$xml = $this->extractSheetXml($zip);
-
 		$this->assertTrue($r);
+
 		$this->assertNotEmpty(($zip->numFiles));
-		$this->assertNotEmpty($xml);
 
-		$merged_cell_range = $xml->mergeCells->mergeCell["ref"][0];
+		for($z=0; $z < $zip->numFiles; $z++) {
+			$inside_zip_filename = $zip->getNameIndex($z);
+			$sheet_xml = $zip->getFromName($inside_zip_filename);
+			if (preg_match("/sheet(\d+).xml/", basename($inside_zip_filename))) {
+				$xml = new SimpleXMLElement($sheet_xml);
+				$merged_cell_range = $xml->mergeCells->mergeCell["ref"][0];
 
-		$this->assertEquals($expected_merged_range, $merged_cell_range);
+				$this->assertEquals($expected_merged_range, $merged_cell_range);
+			}
+		}
 
 		$zip->close();
 		@unlink($filename);
@@ -134,28 +139,33 @@ class XLSXWriterTest extends TestCase
 
 		$zip = new ZipArchive();
 		$r = $zip->open($filename);
-		$xml = $this->extractSheetXml($zip);
-
 		$this->assertTrue($r);
+
 		$this->assertNotEmpty(($zip->numFiles));
-		$this->assertNotEmpty($xml);
 
-		$sheet_view = $xml->sheetViews->sheetView;
+		for($z=0; $z < $zip->numFiles; $z++) {
+			$inside_zip_filename = $zip->getNameIndex($z);
+			$sheet_xml = $zip->getFromName($inside_zip_filename);
+			if (preg_match("/sheet(\d+).xml/", basename($inside_zip_filename))) {
+				$xml = new SimpleXMLElement($sheet_xml);
+				$sheet_view = $xml->sheetViews->sheetView;
 
-		if (!empty($expected_pane)) {
-			$pane = $sheet_view->pane;
-			foreach ($expected_pane as $expected_key => $expected_value) {
-				$attribute = (string) $pane[0][$expected_key];
-				$this->assertEquals($expected_value, $attribute);
+				if (!empty($expected_pane)) {
+					$pane = $sheet_view->pane;
+					foreach ($expected_pane as $expected_key => $expected_value) {
+						$attribute = (string) $pane[0][$expected_key];
+						$this->assertEquals($expected_value, $attribute);
+					}
+				}
+
+				$selections = $sheet_view->selection;
+				for ($i = 0; $i < count($expected_active_cells); $i++) {
+					$this->assertNotEmpty($selections[$i]);
+					$this->assertEquals($expected_active_cells[$i]['cell'], $selections[$i]['activeCell']);
+					$this->assertEquals($expected_active_cells[$i]['cell'], $selections[$i]['sqref']);
+					$this->assertEquals($expected_active_cells[$i]['pane'], $selections[$i]['pane']);
+				}
 			}
-		}
-
-		$selections = $sheet_view->selection;
-		for ($i = 0; $i < count($expected_active_cells); $i++) {
-			$this->assertNotEmpty($selections[$i]);
-			$this->assertEquals($expected_active_cells[$i]['cell'], $selections[$i]['activeCell']);
-			$this->assertEquals($expected_active_cells[$i]['cell'], $selections[$i]['sqref']);
-			$this->assertEquals($expected_active_cells[$i]['pane'], $selections[$i]['pane']);
 		}
 
 		$zip->close();
@@ -230,135 +240,37 @@ class XLSXWriterTest extends TestCase
 
 		$zip = new ZipArchive();
 		$r = $zip->open($filename);
-		$xml = $this->extractSheetXml($zip);
-
 		$this->assertTrue($r);
-		$this->assertNotEmpty(($zip->numFiles));
-		$this->assertNotEmpty($xml);
 
-		$cols = $xml->cols->col;
-		foreach ($widths as $col_index => $col_width) {
-			$col = $cols[$col_index];
-			$this->assertFalse(filter_var($col["collapsed"], FILTER_VALIDATE_BOOLEAN));
-			$this->assertFalse(filter_var($col["hidden"], FILTER_VALIDATE_BOOLEAN));
-			$this->assertTrue(filter_var($col["customWidth"], FILTER_VALIDATE_BOOLEAN));
-			$this->assertEquals($col_index + 1, (string) $col["max"]);
-			$this->assertEquals($col_index + 1, (string) $col["min"]);
-			$this->assertEquals("0", (string) $col["style"]);
-			$this->assertEquals($col_width, (string) $col["width"]);
+		$this->assertNotEmpty(($zip->numFiles));
+
+		for($z=0; $z < $zip->numFiles; $z++) {
+			$inside_zip_filename = $zip->getNameIndex($z);
+			$sheet_xml = $zip->getFromName($inside_zip_filename);
+			if (preg_match("/sheet(\d+).xml/", basename($inside_zip_filename))) {
+				$xml = new SimpleXMLElement($sheet_xml);
+				$cols = $xml->cols->col;
+				foreach ($widths as $col_index => $col_width) {
+					$col = $cols[$col_index];
+					$this->assertFalse(filter_var($col["collapsed"], FILTER_VALIDATE_BOOLEAN));
+					$this->assertFalse(filter_var($col["hidden"], FILTER_VALIDATE_BOOLEAN));
+					$this->assertTrue(filter_var($col["customWidth"], FILTER_VALIDATE_BOOLEAN));
+					$this->assertEquals($col_index + 1, (string) $col["max"]);
+					$this->assertEquals($col_index + 1, (string) $col["min"]);
+					$this->assertEquals("0", (string) $col["style"]);
+					$this->assertEquals($col_width, (string) $col["width"]);
+				}
+				$last_col_index = count($widths);
+				$last_col = $cols[$last_col_index];
+				$this->assertFalse(filter_var($last_col["collapsed"], FILTER_VALIDATE_BOOLEAN));
+				$this->assertFalse(filter_var($last_col["hidden"], FILTER_VALIDATE_BOOLEAN));
+				$this->assertFalse(filter_var($last_col["customWidth"], FILTER_VALIDATE_BOOLEAN));
+				$this->assertEquals("1024", (string) $last_col["max"]);
+				$this->assertEquals($last_col_index + 1, (string) $last_col["min"]);
+				$this->assertEquals("0", (string) $last_col["style"]);
+				$this->assertEquals("11.5", (string) $last_col["width"]);
+			}
 		}
-		$last_col_index = count($widths);
-		$last_col = $cols[$last_col_index];
-		$this->assertFalse(filter_var($last_col["collapsed"], FILTER_VALIDATE_BOOLEAN));
-		$this->assertFalse(filter_var($last_col["hidden"], FILTER_VALIDATE_BOOLEAN));
-		$this->assertFalse(filter_var($last_col["customWidth"], FILTER_VALIDATE_BOOLEAN));
-		$this->assertEquals("1024", (string) $last_col["max"]);
-		$this->assertEquals($last_col_index + 1, (string) $last_col["min"]);
-		$this->assertEquals("0", (string) $last_col["style"]);
-		$this->assertEquals("11.5", (string) $last_col["width"]);
-
-		$zip->close();
-		@unlink($filename);
-	}
-
-	public function testRowHeight() {
-		$filename = tempnam("/tmp", "xlsx_writer");
-
-		$sheet = [
-			['55','66','77','88'],
-			['10','11','12','13'],
-		];
-
-		$custom_height = 20.5;
-
-		$row_options = ['height' => $custom_height];
-
-		$xlsx_writer = new XLSXWriter();
-		$xlsx_writer->writeSheetRow('mysheet', $sheet[0], $format = 'xlsx', $delimiter = ';', $row_options);
-		$xlsx_writer->writeSheetRow('mysheet', $sheet[1]);
-		$xlsx_writer->writeToFile($filename);
-
-		$zip = new ZipArchive();
-		$r = $zip->open($filename);
-		$xml = $this->extractSheetXml($zip);
-
-		$this->assertTrue($r);
-		$this->assertNotEmpty(($zip->numFiles));
-		$this->assertNotEmpty($xml);
-
-		$rows = $xml->sheetData->row;
-		$this->assertRowProperties($custom_height, $expected_custom_height = true, $expected_hidden = false, $expected_collapsed = false, $rows[0]);
-		$this->assertRowProperties($expected_height = 12.1, $expected_custom_height = false, $expected_hidden = false, $expected_collapsed = false, $rows[1]);
-
-		$zip->close();
-		@unlink($filename);
-	}
-
-	public function testRowHidden() {
-		$filename = tempnam("/tmp", "xlsx_writer");
-
-		$sheet = [
-			['55','66','77','88'],
-			['10','11','12','13'],
-		];
-
-		$row_options = ['hidden' => true];
-
-		$expected_height = 12.1;
-		$expected_custom_height = false;
-		$expected_collapsed = false;
-
-		$xlsx_writer = new XLSXWriter();
-		$xlsx_writer->writeSheetRow('mysheet', $sheet[0], $format = 'xlsx', $delimiter = ';', $row_options);
-		$xlsx_writer->writeSheetRow('mysheet', $sheet[1]);
-		$xlsx_writer->writeToFile($filename);
-
-		$zip = new ZipArchive();
-		$r = $zip->open($filename);
-		$xml = $this->extractSheetXml($zip);
-
-		$this->assertTrue($r);
-		$this->assertNotEmpty(($zip->numFiles));
-		$this->assertNotEmpty($xml);
-
-		$rows = $xml->sheetData->row;
-		$this->assertRowProperties($expected_height, $expected_custom_height, $expected_hidden = true, $expected_collapsed, $rows[0]);
-		$this->assertRowProperties($expected_height, $expected_custom_height, $expected_hidden = false, $expected_collapsed, $rows[1]);
-
-		$zip->close();
-		@unlink($filename);
-	}
-
-	public function testRowCollapsed() {
-		$filename = tempnam("/tmp", "xlsx_writer");
-
-		$sheet = [
-			['55','66','77','88'],
-			['10','11','12','13'],
-		];
-
-		$row_options = ['collapsed' => true];
-
-		$expected_height = 12.1;
-		$expected_custom_height = false;
-		$expected_hidden = false;
-
-		$xlsx_writer = new XLSXWriter();
-		$xlsx_writer->writeSheetRow('mysheet', $sheet[0], $format = 'xlsx', $delimiter = ';', $row_options);
-		$xlsx_writer->writeSheetRow('mysheet', $sheet[1]);
-		$xlsx_writer->writeToFile($filename);
-
-		$zip = new ZipArchive();
-		$r = $zip->open($filename);
-		$xml = $this->extractSheetXml($zip);
-
-		$this->assertTrue($r);
-		$this->assertNotEmpty(($zip->numFiles));
-		$this->assertNotEmpty($xml);
-
-		$rows = $xml->sheetData->row;
-		$this->assertRowProperties($expected_height, $expected_custom_height, $expected_hidden, $expected_collapsed = true, $rows[0]);
-		$this->assertRowProperties($expected_height, $expected_custom_height, $expected_hidden, $expected_collapsed = false, $rows[1]);
 
 		$zip->close();
 		@unlink($filename);
@@ -397,24 +309,5 @@ class XLSXWriterTest extends TestCase
 		}
 
 		return empty($difference) ? [] : $difference;
-	}
-
-	private function extractSheetXml($zip) {
-		for($z=0; $z < $zip->numFiles; $z++) {
-			$inside_zip_filename = $zip->getNameIndex($z);
-			$sheet_xml = $zip->getFromName($inside_zip_filename);
-			if (preg_match("/sheet(\d+).xml/", basename($inside_zip_filename))) {
-				return new SimpleXMLElement($sheet_xml);
-			}
-		}
-
-		return null;
-	}
-
-	private function assertRowProperties($expected_height, $expected_custom_height, $expected_hidden, $expected_collapsed, $row) {
-		$this->assertEquals($expected_height, (string)$row['ht']);
-		$this->assertEquals($expected_custom_height, filter_var($row['customHeight'], FILTER_VALIDATE_BOOLEAN));
-		$this->assertEquals($expected_hidden, filter_var($row['hidden'], FILTER_VALIDATE_BOOLEAN));
-		$this->assertEquals($expected_collapsed, filter_var($row['collapsed'], FILTER_VALIDATE_BOOLEAN));
 	}
 }

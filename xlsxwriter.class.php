@@ -228,7 +228,7 @@ class XLSXWriter
 		$this->current_sheet = $sheet_name;
 	}
 
-	public function writeSheetRow($sheet_name, array $row, $format = 'xlsx', $delimiter = ';', array $row_options = []) {
+	public function writeSheetRow($sheet_name, array $row, $format = 'xlsx', $delimiter = ';') {
 		if (empty($sheet_name) || empty($row)) {
 			return;
 		}
@@ -242,12 +242,7 @@ class XLSXWriter
 			$sheet->cell_formats = array_fill(0, count($row), 'string');
 		}
 
-		$ht = array_key_exists('height', $row_options) ? floatval($row_options['height']) : 12.1;
-		$customHt = array_key_exists('height', $row_options) ? 'true' : 'false';
-		$hidden = array_key_exists('hidden', $row_options) ? (string)($row_options['hidden']) : 'false';
-		$collapsed = array_key_exists('collapsed', $row_options) ? (string)($row_options['collapsed']) : 'false';
-		$sheet->file_writer->write('<row collapsed="'.($collapsed).'" customFormat="false" customHeight="'.($customHt).'" hidden="'.($hidden).'" ht="'.($ht).'" outlineLevel="0" r="' . ($sheet->row_count + 1) . '">');
-
+		$sheet->file_writer->write('<row collapsed="false" customFormat="false" customHeight="false" hidden="false" ht="12.1" outlineLevel="0" r="' . ($sheet->row_count + 1) . '">');
 		foreach ($row as $k => $v) {
 			if (is_array($v)) {
 				$this->writeCell($sheet->file_writer, $sheet->row_count, $k, $v[0], $v[1]);
@@ -255,7 +250,6 @@ class XLSXWriter
 				$this->writeCell($sheet->file_writer, $sheet->row_count, $k, $v, $sheet->cell_formats[$k]);
 			}
 		}
-
 		$sheet->file_writer->write('</row>');
 		$sheet->row_count++;
 		$this->current_sheet = $sheet_name;
