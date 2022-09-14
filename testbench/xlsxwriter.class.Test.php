@@ -9,7 +9,7 @@ include_once __DIR__.'/../vendor/autoload.php';
 class _XLSXWriter_ extends XLSXWriter
 {
     public function writeCell(XLSXWriter_BuffererWriter &$file, $row_number, $column_number, $value, $cell_format) {
-		return call_user_func_array('parent::writeCell', func_get_args());
+		parent::writeCell($file, $row_number, $column_number, $value, $cell_format);
 	}
 }
 //Just a simple test, by no means comprehensive
