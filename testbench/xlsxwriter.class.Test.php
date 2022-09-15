@@ -14,7 +14,7 @@ class _XLSXWriter_ extends XLSXWriter
 }
 //Just a simple test, by no means comprehensive
 
-class XLSXWriterTest extends PHPUnit_Framework_TestCase
+class XLSXWriterTest extends \PHPUnit\Framework\TestCase
 {
     /**
      * @covers XLSXWriter::writeCell
