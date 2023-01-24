@@ -288,6 +288,7 @@ class XLSXWriter
 		$this->current_sheet = $sheet_name;
 	}
 	
+	// As suggested in stackoverflow by grabo44 https://stackoverflow.com/users/10551285/grabo44
 	public function writeSheetRowHeader($sheet_name, array $row, $row_options=null)
 	{
 		if (empty($sheet_name))
@@ -316,8 +317,8 @@ class XLSXWriter
 		$style = &$row_options;
 		$c=0;
 		foreach ($row as $v) {
-		    $number_format = 'GENERAL';
-		    $number_format_type = 'n_auto';
+		    $number_format = 'GENERAL'; // set to GENERAL format
+		    $number_format_type = 'n_auto'; // set to auto format type
 		    $cell_style_idx = empty($style) ? $sheet->columns[$c]['default_cell_style'] : $this->addCellStyle( $number_format, json_encode(isset($style[0]) ? $style[$c] : $style) );
 		    $this->writeCell($sheet->file_writer, $sheet->row_count, $c, $v, $number_format_type, $cell_style_idx);
 		    $c++;
