@@ -1,5 +1,5 @@
 {
-    "name": "mk-j/php_xlsxwriter",
+    "name": "artemeon/php_xlsxwriter",
     "description": "PHP Library to write XLSX files",
     "keywords": ["php", "library","xls", "xlsx", "excel"],
     "type": "project",
@@ -13,7 +13,7 @@
         "phpunit/phpunit": "4.3.*"
     },
     "require": {
-        "php": ">=5.2.1",
+        "php": ">=8.1",
         "ext-zip": "*"
     }
 }
