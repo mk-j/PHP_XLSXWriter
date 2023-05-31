@@ -216,7 +216,7 @@ class XLSXWriter
 
 	public function writeSheetHeader($sheet_name, array $header_types, $col_options = null)
 	{
-		if (empty($sheet_name) || empty($header_types) || !empty($this->sheets[$sheet_name]))
+		if (empty($sheet_name) || empty($header_types))
 			return;
 
 		$suppress_row = isset($col_options['suppress_row']) ? intval($col_options['suppress_row']) : false;
@@ -238,10 +238,10 @@ class XLSXWriter
 		{
 			$header_row = array_keys($header_types);      
 
-			$sheet->file_writer->write('<row collapsed="false" customFormat="false" customHeight="false" hidden="false" ht="12.1" outlineLevel="0" r="' . (1) . '">');
+			$sheet->file_writer->write('<row collapsed="false" customFormat="false" customHeight="false" hidden="false" ht="12.1" outlineLevel="0" r="' . ($sheet->row_count+1) . '">');
 			foreach ($header_row as $c => $v) {
 				$cell_style_idx = empty($style) ? $sheet->columns[$c]['default_cell_style'] : $this->addCellStyle( 'GENERAL', json_encode(isset($style[0]) ? $style[$c] : $style) );
-				$this->writeCell($sheet->file_writer, 0, $c, $v, $number_format_type='n_string', $cell_style_idx);
+				$this->writeCell($sheet->file_writer, $sheet->row_count, $c, $v, $number_format_type='n_string', $cell_style_idx);
 			}
 			$sheet->file_writer->write('</row>');
 			$sheet->row_count++;
