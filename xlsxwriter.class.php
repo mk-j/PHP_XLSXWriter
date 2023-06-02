@@ -125,8 +125,12 @@ class XLSXWriter
 	protected function initializeSheet($sheet_name, $col_widths=array(), $auto_filter=false, $freeze_rows=false, $freeze_columns=false )
 	{
 		//if already initialized
-		if ($this->current_sheet==$sheet_name || isset($this->sheets[$sheet_name]))
-			return;
+		if ($this->current_sheet==$sheet_name || isset($this->sheets[$sheet_name])) return;
+
+		if (PHP_MAJOR_VERSION < 8) {
+			$oldlocale = setlocale(LC_NUMERIC, 0);
+			setlocale(LC_NUMERIC, 'C');
+		}
 
 		$sheet_filename = $this->tempFilename();
 		$sheet_xmlname = 'sheet' . (count($this->sheets) + 1).".xml";
@@ -189,6 +193,8 @@ class XLSXWriter
 		$sheet->file_writer->write(  '<col collapsed="false" hidden="false" max="1024" min="'.($i+1).'" style="0" customWidth="false" width="11.5"/>');
 		$sheet->file_writer->write(  '</cols>');
 		$sheet->file_writer->write(  '<sheetData>');
+
+		if (PHP_MAJOR_VERSION < 8) setlocale(LC_NUMERIC, $oldlocale);
 	}
 
 	private function addCellStyle($number_format, $cell_style_string)
@@ -252,8 +258,12 @@ class XLSXWriter
 
 	public function writeSheetRow($sheet_name, array $row, $row_options=null)
 	{
-		if (empty($sheet_name))
-			return;
+		if (empty($sheet_name)) return;
+
+		if (PHP_MAJOR_VERSION < 8) {
+			$oldlocale = setlocale(LC_NUMERIC, 0);
+			setlocale(LC_NUMERIC, 'C');
+		}
 
 		$this->initializeSheet($sheet_name);
 		$sheet = &$this->sheets[$sheet_name];
@@ -287,6 +297,8 @@ class XLSXWriter
 		$sheet->file_writer->write('</row>');
 		$sheet->row_count++;
 		$this->current_sheet = $sheet_name;
+
+		if (PHP_MAJOR_VERSION < 8) setlocale(LC_NUMERIC, $oldlocale);
 	}
 
 	public function countSheetRows($sheet_name = '')
@@ -365,6 +377,11 @@ class XLSXWriter
 
 	protected function writeCell(XLSXWriter_BuffererWriter &$file, $row_number, $column_number, $value, $num_format_type, $cell_style_idx)
 	{
+		if (PHP_MAJOR_VERSION < 8) {
+			$oldlocale = setlocale(LC_NUMERIC, 0);
+			setlocale(LC_NUMERIC, 'C');
+		}
+
 		$cell_name = self::xlsCell($row_number, $column_number);
 
 		if (!is_scalar($value) || $value==='') { //objects, array, empty
@@ -386,6 +403,8 @@ class XLSXWriter
 				$file->write('<c r="'.$cell_name.'" s="'.$cell_style_idx.'" t="inlineStr"><is><t>'.self::xmlspecialchars($value).'</t></is></c>');
 			}
 		}
+
+		if (PHP_MAJOR_VERSION < 8) setlocale(LC_NUMERIC, $oldlocale);
 	}
 
 	protected function styleFontIndexes()
