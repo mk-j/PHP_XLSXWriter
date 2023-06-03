@@ -347,6 +347,20 @@ class XLSXWriter
 		$endCell = self::xlsCell($end_cell_row, $end_cell_column);
 		$sheet->merge_cells[] = $startCell . ":" . $endCell;
 	}
+	
+	public function mergeCells($sheet_name, $range)
+	{
+		if  (!is_string($range) || empty($range)) return;
+		preg_match_all('/[A-Z]+|\d+/', $range, $coord);
+		list($start_col, $start_row, $end_col, $end_row) = $coord[0];
+		
+		$start_row = $start_row - 1;
+		$start_col = $this->getIndexFromName($start_col);
+		$end_row = $end_row - ($start_row + 1);
+		$end_col = $this->getIndexFromName($end_col);
+		
+		$this->markMergedCell($sheet_name, $start_row, $start_col, $end_row, $end_col);
+	}
 
 	public function writeSheet(array $data, $sheet_name='', array $header_types=array())
 	{
@@ -361,6 +375,15 @@ class XLSXWriter
 			$this->writeSheetRow($sheet_name, $row);
 		}
 		$this->finalizeSheet($sheet_name);
+	}
+	
+	public function getIndexFromName($name) {
+	    $index = 0;
+	    for ($i = 0; $i < strlen($name); $i++) {
+		$delta = ord($name[$i]) - 64;
+		$index = $index * 26 + $delta;
+	    }
+	    return $index - 1;
 	}
 
 	protected function writeCell(XLSXWriter_BuffererWriter &$file, $row_number, $column_number, $value, $num_format_type, $cell_style_idx)
