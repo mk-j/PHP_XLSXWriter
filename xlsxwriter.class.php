@@ -314,17 +314,19 @@ class XLSXWriter
 		$file->write(		'<numFmt formatCode="#,##0.00" numFmtId="168"/>');
 		$file->write(		'<numFmt formatCode="0.0000" numFmtId="169"/>');
 		$file->write('</numFmts>');
-		$file->write('<fonts count="5">');
+		$file->write('<fonts count="6">');
 		$file->write(		'<font><name val="Arial"/><charset val="1"/><family val="2"/><sz val="10"/></font>');
 		$file->write(		'<font><name val="Arial"/><family val="0"/><sz val="10"/></font>');
 		$file->write(		'<font><name val="Arial"/><family val="0"/><sz val="10"/></font>');
 		$file->write(		'<font><name val="Arial"/><family val="0"/><sz val="10"/></font>');
 		$file->write(		'<font><name val="Arial"/><b val="true"/><charset val="1"/><family val="2"/><sz val="10"/></font>');
+		$file->write(		'<font><name val="Arial"/><b val="true"/><charset val="1"/><family val="2"/><sz val="10"/><color rgb="FFFFFFFF"/></font>');
 		$file->write('</fonts>');
-		$file->write('<fills count="3">');
+		$file->write('<fills count="4">');
 		$file->write('		<fill><patternFill patternType="none"/></fill>');
 		$file->write('		<fill><patternFill patternType="gray125"/></fill>');
 		$file->write('		<fill><patternFill patternType="solid"><fgColor theme="0" tint="-0.249977111117893"/><bgColor rgb="FF003300"/></patternFill></fill>');
+		$file->write('		<fill><patternFill patternType="solid"><fgColor rgb="FFFF0000"/></patternFill></fill>');
 		$file->write('</fills>');
 		$file->write('<borders count="1"><border diagonalDown="false" diagonalUp="false"><left/><right/><top/><bottom/><diagonal/></border></borders>');
 		$file->write(	'<cellStyleXfs count="20">');
@@ -352,7 +354,7 @@ class XLSXWriter
 		$file->write(		'<xf applyAlignment="false" applyBorder="false" applyFont="true" applyProtection="false" borderId="0" fillId="0" fontId="1" numFmtId="42"/>');
 		$file->write(		'<xf applyAlignment="false" applyBorder="false" applyFont="true" applyProtection="false" borderId="0" fillId="0" fontId="1" numFmtId="9"/>');
 		$file->write(	'</cellStyleXfs>');
-		$file->write(	'<cellXfs count="7">');
+		$file->write(	'<cellXfs count="8">');
 		$file->write(		'<xf applyAlignment="false" applyBorder="false" applyFont="false" applyProtection="false" borderId="0" fillId="0" fontId="0" numFmtId="164" xfId="0"/>');
 		$file->write(		'<xf applyAlignment="false" applyBorder="false" applyFont="false" applyProtection="false" borderId="0" fillId="0" fontId="0" numFmtId="165" xfId="0"/>');
 		$file->write(		'<xf applyAlignment="false" applyBorder="false" applyFont="false" applyProtection="false" borderId="0" fillId="0" fontId="0" numFmtId="166" xfId="0"/>');
@@ -360,6 +362,7 @@ class XLSXWriter
 		$file->write(		'<xf applyAlignment="false" applyBorder="false" applyFont="false" applyProtection="false" borderId="0" fillId="0" fontId="0" numFmtId="168" xfId="0"/>');
 		$file->write(		'<xf applyAlignment="false" applyBorder="false" applyFont="false" applyProtection="false" borderId="0" fillId="0" fontId="0" numFmtId="169" xfId="0"/>');
 		$file->write(		'<xf applyAlignment="false" applyBorder="false" applyFont="false" applyProtection="false" borderId="0" fillId="2" fontId="4" numFmtId="164" xfId="0"/>');
+		$file->write(		'<xf applyAlignment="false" applyBorder="false" applyFont="false" applyProtection="false" borderId="0" fillId="3" fontId="5" numFmtId="164" xfId="0"/>');
 		$file->write(	'</cellXfs>');
 		$file->write(	'<cellStyles count="6">');
 		$file->write(		'<cellStyle builtinId="0" customBuiltin="false" name="Normal" xfId="0"/>');
